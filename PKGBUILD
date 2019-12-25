@@ -1,0 +1,178 @@
+# Contributor: Thomas Baechler <thomas@archlinux.org>
+# Maintainer: Philip Müller <philm[at]manjaro[dog]org>
+# Maintainer: Roland Singer <roland[at]manjaro[dog]org>
+
+pkgbase=nvidia-340xx-utils
+pkgname=('nvidia-340xx-utils' 'opencl-nvidia-340xx' 'mhwd-nvidia-340xx')
+pkgver=340.108
+pkgrel=1
+arch=('i686' 'x86_64')
+url="http://www.nvidia.com/"
+license=('custom')
+options=('!strip')
+source=('mhwd-nvidia' 'nvidia-drm-outputclass.conf' 'nvidia-utils.sysusers')
+source_i686=("https://us.download.nvidia.com/XFree86/Linux-x86/${pkgver}/NVIDIA-Linux-x86-${pkgver}.run")
+source_x86_64=("https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/NVIDIA-Linux-x86_64-${pkgver}-no-compat32.run")
+md5sums=('2f767e7d0c63e6f943edcb82ef09a389'
+         '768a64259f7e8d8a46a13b876d6c443c'
+         '3d2894e71d81570bd00bce416d3e547d')
+md5sums_i686=('ffa278e613337e638fd10de41dae3630')
+md5sums_x86_64=('e783e383bd4344d590ad429eb0883717')
+
+[[ "$CARCH" = "i686" ]] && _pkg="NVIDIA-Linux-x86-${pkgver}"
+[[ "$CARCH" = "x86_64" ]] && _pkg="NVIDIA-Linux-x86_64-${pkgver}-no-compat32"
+
+create_links() {
+    # create soname links
+    find "$pkgdir" -type f -name '*.so*' ! -path '*xorg/*' -print0 | while read -d $'\0' _lib; do
+        _soname=$(dirname "${_lib}")/$(readelf -d "${_lib}" | grep -Po 'SONAME.*: \[\K[^]]*' || true)
+        _base=$(echo ${_soname} | sed -r 's/(.*).so.*/\1.so/')
+        [[ -e "${_soname}" ]] || ln -s $(basename "${_lib}") "${_soname}"
+        [[ -e "${_base}" ]] || ln -s $(basename "${_soname}") "${_base}"
+    done
+}
+
+build() {
+    cd "${srcdir}"
+    sh "${_pkg}.run" --extract-only
+}
+
+package_opencl-nvidia-340xx() {
+    pkgdesc="OpenCL implemention for NVIDIA"
+    depends=('zlib')
+    optdepends=('opencl-headers: headers necessary for OpenCL development')
+    provides=('opencl-nvidia' 'opencl-driver')
+
+    cd "${srcdir}/${_pkg}"
+
+    # OpenCL
+    install -D -m644 nvidia.icd "${pkgdir}/etc/OpenCL/vendors/nvidia.icd"
+    install -D -m755 "libnvidia-compiler.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-compiler.so.${pkgver}"
+    install -D -m755 "libnvidia-opencl.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-opencl.so.${pkgver}" 
+
+    create_links
+
+    mkdir -p "${pkgdir}/usr/share/licenses"
+    ln -s nvidia "${pkgdir}/usr/share/licenses/opencl-nvidia"
+}
+
+
+package_mhwd-nvidia-340xx() {
+    pkgdesc="MHWD module-ids for nvidia $pkgver"
+    arch=('any')
+
+    install -d -m755 "${pkgdir}/var/lib/mhwd/ids/pci/"
+
+    # Generate mhwd database
+    sh -e ${srcdir}/mhwd-nvidia \
+    ${srcdir}/${_pkg}/README.txt \
+    ${srcdir}/${_pkg}/kernel/nv-kernel.o \
+    > ${pkgdir}/var/lib/mhwd/ids/pci/nvidia-340xx.ids
+}
+
+
+package_nvidia-340xx-utils() {
+    pkgdesc="NVIDIA drivers utilities"
+    depends=('xorg-server' 'mesa' 'mhwd')
+    optdepends=('gtk2: nvidia-settings'
+                'xorg-server-devel: nvidia-xconfig'
+                'opencl-nvidia-340xx: OpenCL support')
+    conflicts=('nvidia-utils' 'nvidia-304xx-utils' 'nvidia-340xx-libgl')
+    provides=('nvidia-utils' 'nvidia-340xx-libgl')
+    replaces=('nvidia-340xx-libgl')
+    install="${pkgname}.install"
+
+    cd "${srcdir}/${_pkg}"
+
+    # X driver
+    install -D -m755 nvidia_drv.so "${pkgdir}/usr/lib/xorg/modules/drivers/nvidia_drv.so"
+
+    # GLX extension module for X
+    install -D -m755 "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.${pkgver}"
+    ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.1"	# X doesn't find glx otherwise
+    ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so"	# X doesn't find glx otherwise
+    #ln -s "nvidia/xorg/libglx.so.${pkgver}" "${pkgdir}/usr/lib/libGLX_indirect.so.0"
+
+    # OpenGL library
+    install -D -m755 "libGL.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/libGL.so.${pkgver}"
+    install -D -m755 "libEGL.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/libEGL.so.${pkgver}"
+    install -D -m755 "libGLESv1_CM.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/libGLESv1_CM.so.${pkgver}"
+    install -D -m755 "libGLESv2.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/libGLESv2.so.${pkgver}"
+
+    # OpenGL core library
+    install -D -m755 "libnvidia-glcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glcore.so.${pkgver}"
+    install -D -m755 "libnvidia-eglcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-eglcore.so.${pkgver}"
+    install -D -m755 "libnvidia-glsi.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glsi.so.${pkgver}"
+
+    # misc
+    install -D -m755 "libnvidia-ifr.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ifr.so.${pkgver}"
+    install -D -m755 "libnvidia-fbc.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}"
+    install -D -m755 "libnvidia-encode.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}"
+    install -D -m755 "libnvidia-cfg.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-cfg.so.${pkgver}"
+    install -D -m755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ml.so.${pkgver}"
+
+    # VDPAU
+    install -D -m755 "libvdpau_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/vdpau/libvdpau_nvidia.so.${pkgver}"
+
+    # nvidia-tls library
+    install -D -m755 "tls/libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tls.so.${pkgver}"
+
+    # CUDA
+    install -D -m755 "libcuda.so.${pkgver}" "${pkgdir}/usr/lib/libcuda.so.${pkgver}"
+    install -D -m755 "libnvcuvid.so.${pkgver}" "${pkgdir}/usr/lib/libnvcuvid.so.${pkgver}"
+
+    # DEBUG
+    install -D -m755 nvidia-debugdump "${pkgdir}/usr/bin/nvidia-debugdump"
+
+    # nvidia-xconfig
+    install -D -m755 nvidia-xconfig "${pkgdir}/usr/bin/nvidia-xconfig"
+    install -D -m644 nvidia-xconfig.1.gz "${pkgdir}/usr/share/man/man1/nvidia-xconfig.1.gz"
+
+    # nvidia-settings
+    install -D -m755 nvidia-settings "${pkgdir}/usr/bin/nvidia-settings"
+    install -D -m644 nvidia-settings.1.gz "${pkgdir}/usr/share/man/man1/nvidia-settings.1.gz"
+    install -D -m644 nvidia-settings.desktop "${pkgdir}/usr/share/applications/nvidia-settings.desktop"
+    install -D -m644 nvidia-settings.png "${pkgdir}/usr/share/pixmaps/nvidia-settings.png"
+    sed -e 's:__UTILS_PATH__:/usr/bin:' -e 's:__PIXMAP_PATH__:/usr/share/pixmaps:' -i "${pkgdir}/usr/share/applications/nvidia-settings.desktop"
+
+    # gsync support
+    install -D -m444 pci.ids "${pkgdir}/usr/share/nvidia/pci.ids"
+    install -D -m444 monitoring.conf "${pkgdir}/usr/share/nvidia/monitoring.conf"
+
+    # nvidia-bug-report
+    install -D -m755 nvidia-bug-report.sh "${pkgdir}/usr/bin/nvidia-bug-report.sh"
+
+    # nvidia-smi
+    install -D -m755 nvidia-smi "${pkgdir}/usr/bin/nvidia-smi"
+    install -D -m644 nvidia-smi.1.gz "${pkgdir}/usr/share/man/man1/nvidia-smi.1.gz"
+
+    # nvidia-cuda-mps
+    install -D -m755 nvidia-cuda-mps-server "${pkgdir}/usr/bin/nvidia-cuda-mps-server"
+    install -D -m644 nvidia-cuda-mps-control.1.gz "${pkgdir}/usr/share/man/man1/nvidia-cuda-mps-control.1.gz"
+
+    # nvidia-modprobe
+    # This should be removed if nvidia fixed their uvm module!
+    install -D -m4755 nvidia-modprobe "${pkgdir}/usr/bin/nvidia-modprobe"
+
+    # application profiles
+    install -D -m644 nvidia-application-profiles-${pkgver}-rc "${pkgdir}/usr/share/nvidia/nvidia-application-profiles-${pkgver}-rc"
+    install -D -m644 nvidia-application-profiles-${pkgver}-key-documentation "${pkgdir}/usr/share/nvidia/nvidia-application-profiles-${pkgver}-key-documentation"
+
+    install -D -m644 LICENSE "${pkgdir}/usr/share/licenses/nvidia/LICENSE"
+    ln -s nvidia "${pkgdir}/usr/share/licenses/nvidia-utils"
+    install -D -m644 README.txt "${pkgdir}/usr/share/doc/nvidia/README"
+    install -D -m644 NVIDIA_Changelog "${pkgdir}/usr/share/doc/nvidia/NVIDIA_Changelog"
+    ln -s nvidia "${pkgdir}/usr/share/doc/nvidia-utils"
+
+    # distro specific files must be installed in /usr/share/X11/xorg.conf.d
+    install -m755 -d "${pkgdir}/usr/share/X11/xorg.conf.d"
+    install -m644 "${srcdir}/nvidia-drm-outputclass.conf" "${pkgdir}/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf"
+
+    install -dm 755 "${pkgdir}"/etc/ld.so.conf.d
+    echo -e '/usr/lib/nvidia/' > "${pkgdir}"/etc/ld.so.conf.d/00-nvidia.conf
+
+    install -Dm644 "${srcdir}/nvidia-utils.sysusers" "${pkgdir}/usr/lib/sysusers.d/$pkgname.conf"
+
+    create_links
+}
+
