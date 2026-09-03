@@ -47,7 +47,8 @@ source=("https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/${_pkg}.r
         '0025-kernel-4.16-memory-encryption.patch'
         '0026-module-description.patch'
         '0027-kernel-6.1-fix.patch'
-        '0028-kernel-6.1-uvm-fix.patch')
+        '0028-kernel-6.1-uvm-fix.patch'
+        '0029-kernel-7.3-acpi.patch')
 sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
             '9513f636c27d6ac06a3dd41f7761d2cf4fe8f1c91bb177fce3f333dd2b072713'
             '089d6dc247c9091b320c418b0d91ae6adda65e170934d178cdd4e9bd0785b182'
@@ -82,7 +83,8 @@ sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
             '70f21b1a85e29414902d7dc6fc158d3b40e3a8072bc94fea727a4b25e17c69ca'
             '347c18848f10bf6a968e108ffc7ba445086460cacb996e670ab5756c943004e1'
             'a763da9701dacca48c447fb4e2d9daea9f41674fb5a198407c9a8aa3a8ff7a00'
-            '283ea2c95de4f0bd865c76e0b3c39edf889a25e4681421f1ae67b72df23c4113')
+            '283ea2c95de4f0bd865c76e0b3c39edf889a25e4681421f1ae67b72df23c4113'
+            'aed6b6920939007ad4c57199706892f5efbadef662f2bb533827ab6ac6c3c24a')
 create_links() {
     find "$pkgdir" -type f -name '*.so*' ! -path '*xorg/*' -print0 | while read -d $'\0' _lib; do
         _soname=$(dirname "${_lib}")/$(readelf -d "${_lib}" | grep -Po 'SONAME.*: \[\K[^]]*' || true)
