@@ -1,65 +1,11 @@
 --- NVIDIA-Linux-x86_64-340.108-no-compat32-patched/kernel/nv-acpi.c	2026-08-13 14:08:03.808327939 +0200
-+++ work/kernel-7.3-acpi/nv-acpi.c	2026-09-03 09:46:34.958241798 +0200
-@@ -21,6 +21,7 @@
++++ work/kernel-7.3-acpi/nv-acpi.c	2026-09-03 14:17:43.563910261 +0200
+@@ -15,7 +15,7 @@
+ #include "nv-linux.h"
+ #include "nv-reg.h"
+ 
+-#if defined(NV_LINUX_ACPI_EVENTS_SUPPORTED)
++#if defined(NV_LINUX_ACPI_EVENTS_SUPPORTED) && LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0)
+ static RM_STATUS   nv_acpi_extract_integer (const union acpi_object *, void *, NvU32, NvU32 *);
+ static RM_STATUS   nv_acpi_extract_buffer  (const union acpi_object *, void *, NvU32, NvU32 *);
  static RM_STATUS   nv_acpi_extract_package (const union acpi_object *, void *, NvU32, NvU32 *);
- static RM_STATUS   nv_acpi_extract_object  (const union acpi_object *, void *, NvU32, NvU32 *);
- 
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0)
- static int         nv_acpi_add             (struct acpi_device *);
- 
- #if !defined(NV_ACPI_DEVICE_OPS_REMOVE_ARGUMENT_COUNT) || (NV_ACPI_DEVICE_OPS_REMOVE_ARGUMENT_COUNT == 2)
-@@ -34,6 +35,7 @@
- #endif
- 
- static void        nv_acpi_event           (acpi_handle, u32, void *);
-+#endif
- static acpi_status nv_acpi_find_methods    (acpi_handle, u32, void *, void **);
- static RM_STATUS   nv_acpi_nvif_method     (NvU32, NvU32, void *, NvU16, NvU32 *, void *, NvU16 *);
- 
-@@ -41,6 +43,7 @@
- static RM_STATUS   nv_acpi_mxmi_method     (NvU8 *, NvU16 *);
- static RM_STATUS   nv_acpi_mxms_method     (NvU8 *, NvU16 *);
- 
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0)
- #if defined(NV_ACPI_DEVICE_OPS_HAS_MATCH)
- static int         nv_acpi_match           (struct acpi_device *, struct acpi_driver *);
- #endif
-@@ -87,7 +90,7 @@
- #endif
-     },
- };
--
-+#endif
- static int nv_acpi_get_device_handle(nv_state_t *nv, acpi_handle *dev_handle)
- {
-     nv_linux_state_t *nvl = NV_GET_NVL_FROM_NV_STATE(nv);
-@@ -103,6 +106,8 @@
- #endif
- }
- 
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0)
-+
- int nv_acpi_init(void)
- {
-     /*
-@@ -182,6 +187,20 @@
-     return 0;
- }
- 
-+#else
-+
-+int nv_acpi_init(void)
-+{
-+    return 0;
-+}
-+
-+int nv_acpi_uninit(void)
-+{
-+    return 0;
-+}
-+
-+#endif
-+
- static int nv_acpi_add(struct acpi_device *device)
- {
-     /*

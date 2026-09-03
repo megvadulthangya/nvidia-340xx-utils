@@ -84,7 +84,7 @@ sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
             '347c18848f10bf6a968e108ffc7ba445086460cacb996e670ab5756c943004e1'
             'a763da9701dacca48c447fb4e2d9daea9f41674fb5a198407c9a8aa3a8ff7a00'
             '283ea2c95de4f0bd865c76e0b3c39edf889a25e4681421f1ae67b72df23c4113'
-            'aed6b6920939007ad4c57199706892f5efbadef662f2bb533827ab6ac6c3c24a')
+            'ac2d7d2647c519a03d750e3a6bf92bd0202c4d7519f5a001fb65ca06c1f74637')
 create_links() {
     find "$pkgdir" -type f -name '*.so*' ! -path '*xorg/*' -print0 | while read -d $'\0' _lib; do
         _soname=$(dirname "${_lib}")/$(readelf -d "${_lib}" | grep -Po 'SONAME.*: \[\K[^]]*' || true)
