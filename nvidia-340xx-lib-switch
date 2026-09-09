@@ -1,0 +1,54 @@
+#!/bin/sh
+# nvidia-340xx-lib-switch - váltó script az NVIDIA 340xx GL/EGL/OpenCL könyvtáraihoz
+# A Slack rc.nvidia340 alapján
+
+NVIDIA_VERSION=340.108
+
+GL_LIB=libGL.so.1
+EGL_LIB=libEGL.so.1
+GLES1_LIB=libGLESv1_CM.so.1
+GLES2_LIB=libGLESv2.so.2
+CL_LIB=libOpenCL.so.1
+
+NGL_LIB="libGL.so.${NVIDIA_VERSION}"
+NEGL_LIB="libEGL.so.${NVIDIA_VERSION}"
+NGLES1_LIB="libGLESv1_CM.so.${NVIDIA_VERSION}"
+NGLES2_LIB="libGLESv2.so.${NVIDIA_VERSION}"
+
+if uname -m | grep -q 'x86_64'; then
+    LIBDIRSUFFIX="64"
+else
+    LIBDIRSUFFIX=""
+fi
+
+switch_libs() {
+    local base="$1"
+    cd "$base" || return 1
+
+    if lsmod | grep -q '^nvidia\b'; then
+        ln -sf "nvidia/${NGL_LIB}" "${GL_LIB}"
+        ln -sf "nvidia/${NEGL_LIB}" "${EGL_LIB}"
+        ln -sf "nvidia/${NGLES1_LIB}" "${GLES1_LIB}"
+        ln -sf "nvidia/${NGLES2_LIB}" "${GLES2_LIB}"
+        [ -f "nvidia/${CL_LIB}.0.0" ] && ln -sf "nvidia/${CL_LIB}.0.0" "${CL_LIB}"
+    else
+        local FILE
+        FILE=$(ls ${GL_LIB}.* 2>/dev/null | head -1)
+        [ -n "$FILE" ] && ln -sf "$FILE" "$GL_LIB"
+        FILE=$(ls ${EGL_LIB}.* 2>/dev/null | head -1)
+        [ -n "$FILE" ] && ln -sf "$FILE" "$EGL_LIB"
+        FILE=$(ls ${GLES1_LIB}.* 2>/dev/null | head -1)
+        [ -n "$FILE" ] && ln -sf "$FILE" "$GLES1_LIB"
+        FILE=$(ls ${GLES2_LIB}.* 2>/dev/null | head -1)
+        [ -n "$FILE" ] && ln -sf "$FILE" "$GLES2_LIB"
+        [ -f "${CL_LIB}.0.0" ] && ln -sf "${CL_LIB}.0.0" "$CL_LIB"
+    fi
+}
+
+switch_libs "/usr/lib${LIBDIRSUFFIX}"
+
+if [ -d "/usr/lib32" ]; then
+    switch_libs "/usr/lib32"
+fi
+
+ldconfig -X

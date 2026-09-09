@@ -7,84 +7,214 @@
 pkgbase=nvidia-340xx-utils
 pkgname=('nvidia-340xx-utils' 'opencl-nvidia-340xx' 'nvidia-340xx-dkms' 'mhwd-nvidia-340xx')
 pkgver=340.108
-pkgrel=1
+pkgrel=3
 arch=('x86_64')
 url="https://www.nvidia.com/"
 license=('custom')
 options=('!strip')
-_pkg="NVIDIA-Linux-x86_64-${pkgver}-no-compat32"
-source=("https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/${_pkg}.run"
-        'mhwd-nvidia'
-        'nvidia-drm-outputclass.conf'
-        'nvidia-340xx-utils.install'
-        'nvidia-utils.sysusers'
-        '20-nvidia.conf'
-        'nvidia-340xx.rules'
-        '0001-kernel-5.7.patch'
-        '0002-kernel-5.8.patch'
-        '0003-kernel-5.9.patch'
-        '0004-kernel-5.10.patch'
-        '0005-kernel-5.11.patch'
-        '0006-kernel-5.14.patch'
-        '0007-kernel-5.15.patch'
-        '0008-kernel-5.16.patch'
-        '0009-kernel-5.17.patch'
-        '0010-kernel-5.18.patch'
-        '0011-kernel-6.0.patch'
-        '0012-kernel-6.2.patch'
-        '0013-kernel-6.3.patch'
-        '0014-kernel-6.5.patch'
-        '0015-kernel-6.6.patch'
-        '0016-kernel-6.8.patch'
-        '0017-gcc-14.patch'
-        '0018-gcc-15.patch'
-        '0019-kernel-6.15.patch'
-        '0020-kernel-6.14.patch'
-        '0021-kernel-6.18-workqueue-flush.patch'
-        '0022-kernel-6.19-hardirq.patch'
-        '0023-kernel-6.19-misc.patch'
-        '0024-kernel-7.0-screen_info.patch'
-        '0025-kernel-4.16-memory-encryption.patch'
-        '0026-module-description.patch'
-        '0027-kernel-6.1-fix.patch'
-        '0028-kernel-6.1-uvm-fix.patch'
-        '0029-kernel-7.3-acpi.patch')
-sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
+_pkg="NVIDIA-Linux-x86_64-${pkgver}"
+
+source=(
+    "https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/${_pkg}.run"
+    "mhwd-nvidia"
+    "nvidia-340xx-utils.install"
+    "nvidia-utils.sysusers"
+    "nvidia-340xx.rules"
+    "10-nvidia.conf.in"
+    "10-nvidia-modules.conf.in"
+    "nvidia-340xx-lib-switch"
+    "nvidia-340xx-lib-switch.service"
+    "nv-gnu17-fms-extensions-1.patch"
+    "nv-drm-fop-flags.patch"
+    "nv-no-per-vma-lock-on-x86.patch"
+    "nv-screen-info.patch"
+    "nv-vma-lock-offset.patch"
+    "nv-is-vma-write-locked-args.patch"
+    "nv-gnu17-fms-extensions-2.patch"
+    "bashisms.patch"
+    "0001-backport-error-on-unknown-conftests.patch"
+    "unregister_procfs_on_failure.patch"
+    "kmem_cache_create_usercopy.patch"
+    "buildfix_kernel_4.11.patch"
+    "buildfix_kernel_5.2.patch"
+    "03-unfuck-for-5.5.x.patch"
+    "0008-backport-drm_available-changes-from-361.16.patch"
+    "0009-backport-drm_driver_has_legacy_dev_list-changes-from.patch"
+    "0010-backport-drm_gem_object_get-changes-from-418.30.patch"
+    "0011-backport-nv_ioremap_nocache-changes-from-440.64.patch"
+    "0012-backport-nv_proc_ops_t-changes-from-440.82.patch"
+    "0013-backport-nv_timeval-changes-from-440.82.patch"
+    "0015-drm_legacy_pci_init-was-moved-to-drm-drm_legacy.h.patch"
+    "0016-backport-asm-pgtable_types.h-changes-from-390.138.patch"
+    "0017-backport-linux-ioctl32.h-changes-from-450.51.patch"
+    "0018-backport-nv_vmalloc-changes-from-450.57.patch"
+    "0019-work-around-mmap_-sem-lock-rename.patch"
+    "0021-backport-get_user_pages_remote-changes-from-455.23.0.patch"
+    "0022-backport-vga_tryget-changes-from-455.23.04.patch"
+    "0023-backport-drm_driver_has_gem_free_object-changes-from.patch"
+    "0024-backport-drm_prime_pages_to_sg_has_drm_device_arg-ch.patch"
+    "0025-check-for-drm_pci_init.patch"
+    "0026-import-drm_legacy_pci_init-exit-from-src-linux-5.9.1.patch"
+    "0027-add-static-and-nv_-prefix-to-copied-drm-legacy-bits.patch"
+    "0028-backport-asm-kmap_types.h-changes-from-460.32.03.patch"
+    "0029-backport-drm_driver_has_gem_prime_callbacks-changes-.patch"
+    "0030-skip-list-operations-if-drm_device.legacy_dev_list-i.patch"
+    "0031-backport-set_current_state-changes-from-470.63.01.patch"
+    "0032-backport-drm_device_has_pdev-changes-from-470.63.01.patch"
+    "0033-check-for-member-agp-in-struct-drm_device.patch"
+    "0034-backport-stdarg.h-changes-from-470.82.00.patch"
+    "0035-backport-pde_data-changes-from-470.103.01.patch"
+    "0036-backport-pci-dma-changes-from-470.129.06.patch"
+    "0037-backport-acpi_bus_get_device-changes-from-470.129.06.patch"
+    "0038-backport-acpi-changes-from-390.157.patch"
+    "0039-backport-acpi_op_remove-changes-from-470.182.03.patch"
+    # A 0040 UVM része hibás, de nem kritikus
+    "0040-backport-vm_area_struct_has_const_vm_flags-changes-f.patch"
+    "0041-backport-get_user_pages-changes-from-418.30.patch"
+    "0042-backport-get_user_pages-changes-from-520.56.06.patch"
+    "0043-backport-get_user_pages-changes-from-525.53.patch"
+    "0044-backport-get_user_pages-changes-from-535.86.05.patch"
+    "0045-backport-asm-page.h-changes-from-470.223.02.patch"
+    "0046-backport-drm_gem_prime_handle_to_fd-changes-from-470.patch"
+    "0047-refuse-to-load-legacy-module-if-IBT-is-enabled.patch"
+    "0048-backport-nv_get_kern_phys_address-changes-from-555.4.patch"
+    "0051-build-without-Wsign-compare.patch"
+    "0052-backport-cmd_symlink-changes-from-550.142.patch"
+    "0053-fix-more-warnings.patch"
+    "0060-backport-build_cflags-changes-from-525.85.05.patch"
+    "0063-backport-conftest.sh-comment-changes-from-515.48.07.patch"
+    "0063-backport-conftest.sh-comment-changes-from-525.53.patch"
+    "0063-backport-conftest.sh-comment-changes-from-545.23.06.patch"
+    "0064-backport-drm_driver_has_date-from-570.124.04.patch"
+    "0065-backport-ccflags-y-changes-from-570.153.02.patch"
+    "0066-backport-nv_timer_delete_sync-changes-from-570.153.0.patch"
+    "0071-backport-nv_vma_start_write-changes-from-570.169.patch"
+    "0072-disable-objtool-usage.patch"
+    "0075-backport-drm_print.h-changes-from-570.211.01.patch"
+    "0076-backport-nv_in_hardirq-changes-from-580.119.02.patch"
+    "0077-backport-vma_flags_set_word-changes-from-580.126.09.patch"
+    "separate-makefile-kbuild.patch"
+    "KERNEL_UNAME.patch"
+    "use-kbuild-compiler.patch"
+    "use-kbuild-flags.patch"
+    "build-sanity-checks.patch"
+    "conftest-verbose.patch"
+    "conftest-via-kbuild.patch"
+    "not-silent.patch"
+    "disable-cc_version_check.patch"
+    "avoid-ld.gold.patch"
+    "conftest-include-guard.patch"
+    "ignore_xen_on_arm.patch"
+    "arm-outer-sync.patch"
+    "armhf-on-arm64-kernel.patch"
+    "get_configured340.sh"
+    "get_defined340.sh"
+    "split_conftest340.sh"
+    "collect_tests340.sh"
+    "https://download.nvidia.com/XFree86/nvidia-settings/nvidia-settings-${pkgver}.tar.bz2"
+    "https://download.nvidia.com/XFree86/nvidia-xconfig/nvidia-xconfig-${pkgver}.tar.bz2"
+    "https://download.nvidia.com/XFree86/nvidia-modprobe/nvidia-modprobe-${pkgver}.tar.bz2"
+)
+
+sha256sums=('c671d4f1b7c09bc1af079b98b447adb06d704b04f802f7045a611fa50133b71b'
             '9513f636c27d6ac06a3dd41f7761d2cf4fe8f1c91bb177fce3f333dd2b072713'
-            '089d6dc247c9091b320c418b0d91ae6adda65e170934d178cdd4e9bd0785b182'
             'da91d297dab211622e5d025582c3a997865ab6fda3d63d343787c4148f9f15be'
             'd8d1caa5d72c71c6430c2a0d9ce1a674787e9272ccce28b9d5898ca24e60a167'
-            '89c45a114a3420afc0de53a3d7e4182fe317f16e9a7e559c144c5e69d16e246e'
             '19b61cce21c440bf86bde883ce8384dc1032ff30ca6785f03a02cfa0de425fbf'
-            'c8bda5fb238fbebc5bf6ae4b7646e48b30a96b9060ced20d93c53c14ac3161f6'
-            '10b91c8dbc269ff1d8e3e8a1866926c309ff3912d191a05cd5724a3139776f32'
-            'e06af37ffa2203698594e0f58816b809feced9b2374927e13b85fd5c18fa3114'
-            '5e184ca5fcbf5071050f23503bfd3391c4bc1ccc31453338791a3da3885b6085'
-            '2430303d6a0f48418532229aa5377e8848be762a8fdc790edeba30e6eec5214c'
-            '47ca88252c6b40f488f403f81c3eb1c1e5a5eed1dc353e31d53b5c815c433238'
-            'ff4869ea16eb3d894b13a6ca6775906ce0feacf405a2ade63c4f052df6024769'
-            'ad663464d7f57f0f7136bd727ed088d733b087be10cd944ba7d089c421536717'
-            'e9970b3ab78f34bdfa29f5dc4f6772aa35026d14d14a0e35bd9744187583edc9'
-            'ebb3c5f9b41d0d5081b27a6335ffa6114d65dbcb98f935158167877c394ccb89'
-            'b741790983e2bfba1c7d1842af73a353fbe0de987bec3ee05385d20f244226b9'
-            '84373dd6280ae2358017a23a1ee30a570990a7d5087ab67037dd1a5076a176b1'
-            '20a60e305c3228ace56ba0e1846aa6000fefbf0a07b7b18007e10cc2f183ea29'
-            'b2687197a42b02f4886f43284a8c45fc6610f5e0ed515a5c132f8803165ebebf'
-            'e6269d4ffd22ddfb3dd436e02d4b6b3cac8c7779795ab4f30917673152e862fd'
-            '06ab027cd786de4c5afd8b9ee2c7a2a21d5a029de513d77e13f7d0b018073a20'
-            'c2fee0f46ae5650328e70a0cf076f685d4a9005a178cb0150d3537e10567bf81'
-            '9e67b8e96caeae132a3dfc94d0c8f4e8e5c89fdb5122bd3d8b6f4745185a78d5'
-            '8cf4c3fd074ebd0d46c6dd16f63e40e1e31770a0580aea604fe55f91a10b45b9'
-            '6e42738cb4f80f0a354f3170e2e950aff413dbccea08f090b307172f26809a30'
-            '875f748cb4ea5459cd14e070ba1ccbc1335a833eae61b5b21e781915bf0ad0d0'
-            'cc2109738c0d3cb059e05c509eb84dbc6065e4fb519ae89cce39fe4cc31a06fb'
-            'aefb4f5d6419675d59bdd809732065ef39873a4307e4689877571c245d64b21b'
-            'bad7868b9cbff26949f808d5a9e995662fb0ad3d484087484aefeb2087d9fa51'
-            '70f21b1a85e29414902d7dc6fc158d3b40e3a8072bc94fea727a4b25e17c69ca'
-            '347c18848f10bf6a968e108ffc7ba445086460cacb996e670ab5756c943004e1'
-            'a763da9701dacca48c447fb4e2d9daea9f41674fb5a198407c9a8aa3a8ff7a00'
-            '283ea2c95de4f0bd865c76e0b3c39edf889a25e4681421f1ae67b72df23c4113'
-            'ac2d7d2647c519a03d750e3a6bf92bd0202c4d7519f5a001fb65ca06c1f74637')
+            '9225323fe0ed6d2e4c46d5b3287810d6cc82cc771b20bdf929fed352905c6baf'
+            'ce536db11dcd4a28a6de914e5f4d07f431051296aeda257d6ab8722e0fe6940d'
+            '9922eae6a32dff82eb0390087d2129f399b4c4d0263f70db9044531c58b7c151'
+            '95cf1c5c674e7fdba6be6b708f3835d8e9e947f5de241a0a38fd3296a03342d7'
+            'b7b252ef8bc831562d4e7b3b25b6e4d835e64648a06cafab876309607751c360'
+            '37a4353f35fcacabadc8d0f409df6e73aec3ee5e76a2d4f731ff3ccfec7dacc2'
+            '4e93b2b952c6aff19f4f41118230348213099122d35f7141fe4bd6233b226a19'
+            '4f26432b5f143bb66117609bd9dbd3e73928c30bacc680c383907639266f59fd'
+            '4d28c74b0ce7185bb7c701aff8e8e1ab27a704f80a5ec0823a1ddb35a58d6d73'
+            '7e36067badf65a46b36cf0f741f3cc2f7123c13111286cb247a6e851aeedba9d'
+            '2c49b0379b5081bf06ea79d20bf33a66bdbdbc447bbfc82752c4c3705dd22f2c'
+            '53db3bbf450dbacc6257194002535c5f8a6e6359d4c4fde5ec29603b2e085eb5'
+            '36b5094922db3c925aa370ecc6fbd2d36980ff7147f64fadf81ac401503f5f1d'
+            'c981dc01af43d9849d332596fb2cf20725c25d52843309348967d6a691b84318'
+            '5e5280a5425e6f93efdacb2c51757799caf3ee62a5539de0dbaa79858f5171ac'
+            'c7ed049ff0e594c8a7624474a34e8126ba60e36f1276a6c86c108b993d798350'
+            'e40155ff823709d4d1914126a30bb0c900a5bb4d06cdc4e493da19d51325a8f2'
+            'a052691c7546a1c8a2560a4008c4299ed5a61aab13d665b0502c6e8c0ab43c4e'
+            '05d24dfd238cec1fd56dd48c974dedba61ea799196c732ad79a149e8981c5e4d'
+            '32c03d606e6fab66d793f14b0079738e4e0e49a15da9202c5c36cf5dd09f209f'
+            '97eff24adfbe52e84cd4654166055e6428730ed1c7fc92f23464b804d704e9d2'
+            '86046d3172db427393f7ce239156d81cf200c9538d7216a8417d65347d8b1df0'
+            '38072af5bf86a5eb02c6442708d44ea9a1c08cd54f3aaad7c3c8ae1d305bdfd7'
+            'a666526244461d7aa1d70e848e9a48abfeafb7a4276815e009d4526004357b7d'
+            'f3aa16f33ec5dbc06cc4cfd4a7061f34b72eaefb9371de5c5262b8f5fc6c696a'
+            '8a41ca402f1f63091068fa30b9d6bc94b409b8301371e0d15e7d919eac76c508'
+            '6f750552b854712a010e80e4e7a13a3fcc3a6eee0936a5fb033a6e608ca18b64'
+            '6cddbf41336ec3623765751c9c55de293c097ec7bc4d3ade8e8212ba839a0489'
+            'ff56050a3af591e87544641d362db32697274fcc273e119de1c588552528c5e0'
+            'e6214b451bbda0aceec67eba014007b03a17743c58673988ec3cbf65637fc066'
+            '3f3fbdddc245f27d21cef11501a9a24f211375f5b239f2c62c4f986584a8ae48'
+            'ef8e0cc932aa1ee54ab6cf4d3658487cc633393e762a890427e1b871fafbefae'
+            '881a9e649e9d74fe9ea3d62aa465c007bb4ced23f7bf06e1b29551fc2ee9345d'
+            '8d175bab568463e2e75aaeddbbc01a8b556cf1731cffe24355b2334193bce8ec'
+            '2d26f6c3f3ba3b8ef7cb768e50c775aef33c082a38d4a1a230aa1a4205ea5984'
+            '397dcfa0c9ff9339916204d59c3441da7177cc47a9037e6168c4829324391025'
+            '374838fc5197c0bbb1c448a5965dc106b182d970c329568a9d1c9b220e6efcb6'
+            'ed16aacb499493d53b1f62d995cf6a25aef21bb0ee451188ae08fc595f9f2383'
+            'e4fa7e850a76811212b0044bd899d69a8f8471f16887bb7c4cac502bd0572872'
+            'de1aa4e6d3c387d3c5f20ee9ace2ea8ca15d8fdf50bf33d7e664f73f504ecce7'
+            '3c162f7bfd38f8e772703b6eaf975eb969c1df4b3ce5147e762914ca9eef9356'
+            'df6e105030db178fd2e68d76bcba74edff92fb92fb3c0e695d46afaffda3a6bb'
+            '1dcee21fa0391f735e176aa268ade7942d5474878098ee1ade81f62fef3d2c37'
+            '72aba65dbdd7309d9139da4f74a727cf078dc4aeba9bbe05e8fa98638dc83bce'
+            '89461e5dc40205e520653845d7a06e4acf86ac2fdb2bd2361f0694bfe90f3c18'
+            '326593b6f853a7b201fa39afa020d476d34adda99d89e5a01c3813da93d91d60'
+            '2049d9104fb5e9165b56634d81f9dbf9e6ba0829d793abd75879d092fb79ddf2'
+            '14da3aa5a8d87f0bc763ad94da8506413894863e5519974634d16d86b995c47a'
+            'a89d1f02c5d6f153fc1bf5f9a6e361ec7740a745135df2f6dbad8ebd03eb233c'
+            'b51abc1699ed55b2d98fcf98797f2d02601b417053b33cba4cc366b6b969b399'
+            'ca2d1860af489791a40db17aff996ee77c193ba76894ff5b6a9604321ef976d9'
+            '15f27a296bedda4e029a445941e766f3eee1119f2e6975234885b627d730743d'
+            'ae4e805d42a228cf371a5d06ff32226d4bde5da78d8502d6331739a851ecde40'
+            '62711c3208d4a9f88579ef340421722f1e184ef6c691ef50914fead1a5ffd41d'
+            '72e9e7dfce14b0c3a356e80f622aeef9a7a07dfd8d839c58975b2aa377826c8e'
+            'fa165f694ce8eb33ba2ed516228aba3568910d2e3183dbb6664103bd122e075e'
+            'f2cd6b6f0e31320b73f8dea32df57b3001a0cadb0447b650677436ab6694d5fb'
+            '0de4fdc8864e61488be6837ed9801b9fbbb05136a2e0213fdcfc9815f1d3e463'
+            'ff8275c06f5e04ed094bef34ed8ce85d547c96294b3187bc9a7308faa339626d'
+            '58f83d92a0bf65c281b4d413427534f98b4e43005d1cfc07c1a4ca508eab43ec'
+            'd6ae0267f125927ec3fce2a7a749ec2c0c9d17ef0946a085912e9df9695c4f2c'
+            'd66a8914e8d2ec500b748321c2d76bc5387dde9a89f8047fab3ce0371d1488aa'
+            '4213eeb3bd0319d8ddb3d854ef0d4e973a7d826684b60cc57660e229cb9cbb6b'
+            '7a2208146ad8c434724c490f782fc1737b0efcd0d01807b05da24eeed0f2606c'
+            'e50b2d02b6955ba6dac57d48e239eb520deb00aaf03962813f61f5945a3950dd'
+            'a2fd203800d2cac8374c2a522b58fc78174c99af1b6ecff73973085800586d33'
+            'a9c4ee59cb27929d56b6b07b6440b5f31a7e7b5ef5447ae438f44065a13ad205'
+            '95d06b6420db0935839627a9f4f1d092e6fa02ade0016945ae88484d088f2a7b'
+            '53b37c1101dd9be2d126fd246af262a5305bd450257d22095e7c0baa469af03a'
+            '2b889de6c89511cd7639c95a94a51c517eca0fddce152cc467b16a5ab8d73d43'
+            '6fba0317d66c41052c41d2d9af7d85a88ae04fc323e84c34a44bcc4e1311489a'
+            '47e822a296c449f0dc5e2e8d20709682c2c91a84f388d67d14dd5a5d5250e7a3'
+            'd8f962fa0df9073f59bf4e090cb1ca01a2a6dcb99b6b4e9fdd52d71508551101'
+            'eed94bb582fcdbb00a7d8fd9cc10824e6b75c6ba4650d70c97ab5252669876d9'
+            'a01750010af1aa81dd4e9cb765bc805b60283cf19014bf90325deb776d4c9e54'
+            '1e3e683bf1fb2009e9b1f1b453554575f2a77fb88f0595f66a4d3568817c5909'
+            '37fb53681c82181059d3e8ae7a7940a3f0963ca0809f073670d0b8edcf212b10'
+            '89ead0ee685666c40c3e8a027fbc11bde145a28271b73d8ca8aa81b2a2859cc4'
+            'a5f7c23c16cb1cb2c07c5f4652b1ba8679ca9470c978e235e41a4b239de49d94'
+            'f97b0362393aa1265309e4d618040f8fe2a706f55dfaa5adc3e381c3fb40ce8c'
+            'a2c32ee9194d3bcf2eb6f734d93bbabe14d47a55d999135cd118383280aca307'
+            '80e49700c9bed6b8172819e05f25bb7afe0cd9388c9ae908b24db6c9b83a16bf'
+            '9af8b70497acf6c2ecd18bcdf62674f2e83e15a499eaa7d03d571ed754b26117'
+            '7026a7bf9221096af816f70cd6ddd9eadf2740429018d1d1db395fc85d1daf54'
+            '68876071bc948fddeb668f4561ab26943d04e00205c7385e0e9a15f4853c22e1'
+            '5e8cde32a6670e065686988b5b1491c04e20daff1207157ef152fee06488c76d'
+            'a7e4cdb5be58e264fd573d7c644ef489622e4c96eaa1146ffd88b9749f76454d'
+            '409d99382de32e046c8873b5299c46bae4603cf8d93ebf1c264e70c4c84b2896'
+            '82f4a68306491ba6bd37b9ca9c54cc3936bbde687708ce967a87a45b3f7a316e'
+            'bed35a4026d9dd766890da0be8d7e225c3bed4ba31fae6569ce83e1284c5bb38'
+            'd03c7f1d46be76191a2406ac347a5e309760b83b0302b3322126aed2e425e147'
+            'cfb14c2f39fb9c09808878ae149ddfad3385f64a95ccab7335bef0c4b1864f53'
+            'd07561b66a7648f270f4990f3794f90585dc1ae68423c1ec12e6344a74bb249f')
+
 create_links() {
     find "$pkgdir" -type f -name '*.so*' ! -path '*xorg/*' -print0 | while read -d $'\0' _lib; do
         _soname=$(dirname "${_lib}")/$(readelf -d "${_lib}" | grep -Po 'SONAME.*: \[\K[^]]*' || true)
@@ -95,31 +225,162 @@ create_links() {
 }
 
 prepare() {
+    chmod +x "${srcdir}/get_configured340.sh" \
+             "${srcdir}/get_defined340.sh" \
+             "${srcdir}/split_conftest340.sh" \
+             "${srcdir}/collect_tests340.sh"
+
     rm -rf "${_pkg}"
     sh "${_pkg}.run" --extract-only
-
     cd "${_pkg}"
 
-    # Apply all patches in order
-    for src in "${source[@]}"; do
-        src="${src%%::*}"
-        src="${src##*/}"
-        [[ $src = 0*.patch ]] || continue
-        echo "Applying patch $src..."
-        patch -Np1 < "../$src"
+    sed -i 's|/usr/libLIBDIRSUFFIX|/usr/lib|g' "${srcdir}/10-nvidia.conf.in"
+    sed -i 's|/usr/libLIBDIRSUFFIX|/usr/lib|g' "${srcdir}/10-nvidia-modules.conf.in"
+
+    cd kernel
+
+    patch -p2 < "${srcdir}/nv-gnu17-fms-extensions-1.patch"
+
+    "${srcdir}/get_configured340.sh"
+    mv got_configured340.txt got_configured340.orig
+    "${srcdir}/get_defined340.sh"
+    mv got_defined340.txt got_defined340.orig
+    cp Makefile Makefile.orig
+    cp conftest.sh conftest.orig
+    cp uvm/Makefile uvm/Makefile.orig
+    cp uvm/conftest.sh uvm/conftest.orig
+
+    local _series=(
+        "bashisms.patch"
+        "0001-backport-error-on-unknown-conftests.patch"
+        "unregister_procfs_on_failure.patch"
+        "kmem_cache_create_usercopy.patch"
+        "buildfix_kernel_4.11.patch"
+        "buildfix_kernel_5.2.patch"
+        "03-unfuck-for-5.5.x.patch"
+        "0008-backport-drm_available-changes-from-361.16.patch"
+        "0009-backport-drm_driver_has_legacy_dev_list-changes-from.patch"
+        "0010-backport-drm_gem_object_get-changes-from-418.30.patch"
+        "0011-backport-nv_ioremap_nocache-changes-from-440.64.patch"
+        "0012-backport-nv_proc_ops_t-changes-from-440.82.patch"
+        "0013-backport-nv_timeval-changes-from-440.82.patch"
+        "0015-drm_legacy_pci_init-was-moved-to-drm-drm_legacy.h.patch"
+        "0016-backport-asm-pgtable_types.h-changes-from-390.138.patch"
+        "0017-backport-linux-ioctl32.h-changes-from-450.51.patch"
+        "0018-backport-nv_vmalloc-changes-from-450.57.patch"
+        "0019-work-around-mmap_-sem-lock-rename.patch"
+        "0021-backport-get_user_pages_remote-changes-from-455.23.0.patch"
+        "0022-backport-vga_tryget-changes-from-455.23.04.patch"
+        "0023-backport-drm_driver_has_gem_free_object-changes-from.patch"
+        "0024-backport-drm_prime_pages_to_sg_has_drm_device_arg-ch.patch"
+        "0025-check-for-drm_pci_init.patch"
+        "0026-import-drm_legacy_pci_init-exit-from-src-linux-5.9.1.patch"
+        "0027-add-static-and-nv_-prefix-to-copied-drm-legacy-bits.patch"
+        "0028-backport-asm-kmap_types.h-changes-from-460.32.03.patch"
+        "0029-backport-drm_driver_has_gem_prime_callbacks-changes-.patch"
+        "0030-skip-list-operations-if-drm_device.legacy_dev_list-i.patch"
+        "0031-backport-set_current_state-changes-from-470.63.01.patch"
+        "0032-backport-drm_device_has_pdev-changes-from-470.63.01.patch"
+        "0033-check-for-member-agp-in-struct-drm_device.patch"
+        "0034-backport-stdarg.h-changes-from-470.82.00.patch"
+        "0035-backport-pde_data-changes-from-470.103.01.patch"
+        "0036-backport-pci-dma-changes-from-470.129.06.patch"
+        "0037-backport-acpi_bus_get_device-changes-from-470.129.06.patch"
+        "0038-backport-acpi-changes-from-390.157.patch"
+        "0039-backport-acpi_op_remove-changes-from-470.182.03.patch"
+        # 0040 UVM hibás lehet, de nem állunk meg
+        "0040-backport-vm_area_struct_has_const_vm_flags-changes-f.patch"
+        "0041-backport-get_user_pages-changes-from-418.30.patch"
+        "0042-backport-get_user_pages-changes-from-520.56.06.patch"
+        "0043-backport-get_user_pages-changes-from-525.53.patch"
+        "0044-backport-get_user_pages-changes-from-535.86.05.patch"
+        "0045-backport-asm-page.h-changes-from-470.223.02.patch"
+        "0046-backport-drm_gem_prime_handle_to_fd-changes-from-470.patch"
+        "0047-refuse-to-load-legacy-module-if-IBT-is-enabled.patch"
+        "0048-backport-nv_get_kern_phys_address-changes-from-555.4.patch"
+        "0051-build-without-Wsign-compare.patch"
+        "0052-backport-cmd_symlink-changes-from-550.142.patch"
+        "0053-fix-more-warnings.patch"
+        "0060-backport-build_cflags-changes-from-525.85.05.patch"
+        "0063-backport-conftest.sh-comment-changes-from-515.48.07.patch"
+        "0063-backport-conftest.sh-comment-changes-from-525.53.patch"
+        "0063-backport-conftest.sh-comment-changes-from-545.23.06.patch"
+        "0064-backport-drm_driver_has_date-from-570.124.04.patch"
+        "0065-backport-ccflags-y-changes-from-570.153.02.patch"
+        "0066-backport-nv_timer_delete_sync-changes-from-570.153.0.patch"
+        "0071-backport-nv_vma_start_write-changes-from-570.169.patch"
+        "0072-disable-objtool-usage.patch"
+        "0075-backport-drm_print.h-changes-from-570.211.01.patch"
+        "0076-backport-nv_in_hardirq-changes-from-580.119.02.patch"
+        "0077-backport-vma_flags_set_word-changes-from-580.126.09.patch"
+        "separate-makefile-kbuild.patch"
+        "KERNEL_UNAME.patch"
+        "use-kbuild-compiler.patch"
+        "use-kbuild-flags.patch"
+        "build-sanity-checks.patch"
+        "conftest-verbose.patch"
+        "conftest-via-kbuild.patch"
+        "not-silent.patch"
+        "disable-cc_version_check.patch"
+        "avoid-ld.gold.patch"
+        "conftest-include-guard.patch"
+        "ignore_xen_on_arm.patch"
+        "arm-outer-sync.patch"
+        "armhf-on-arm64-kernel.patch"
+    )
+
+    for _p in "${_series[@]}"; do
+        echo "Applying patch ${_p}"
+        if [[ $_p == "0040-backport-vm_area_struct_has_const_vm_flags-changes-f.patch" ]]; then
+            # UVM hiba nem kritikus
+            patch -p1 < "${srcdir}/${_p}" || true
+        else
+            patch -p1 < "${srcdir}/${_p}"
+        fi
     done
 
-    # Prepare DKMS
-    cd kernel
-    # Add UVM module to dkms.conf
-    if ! grep -q "nvidia-uvm" dkms.conf; then
-        cat uvm/dkms.conf.fragment >> dkms.conf
-    fi
-    # Set make jobs based on nproc
-    sed -i "s/__JOBS/`nproc`/" dkms.conf
-    # Modernize deprecated DKMS directive names (CLEAN -> clean)
-    sed -i -E 's/^([[:space:]]*)CLEAN/\1clean/' dkms.conf
+    # Második állapotmentés
+    "${srcdir}/get_configured340.sh"
+    mv got_configured340.txt got_configured340.deb
+    "${srcdir}/get_defined340.sh"
+    mv got_defined340.txt got_defined340.deb
+    cp Makefile Makefile.deb
+    cp conftest.sh conftest.deb
+    cp uvm/Makefile uvm/Makefile.deb
+    cp uvm/conftest.sh uvm/conftest.deb
+
+    # Külön patchek – mindegyik || true-val, mert UVM úgysem kell
+    for _p in \
+        nv-drm-fop-flags.patch \
+        nv-no-per-vma-lock-on-x86.patch \
+        nv-screen-info.patch \
+        nv-vma-lock-offset.patch \
+        nv-is-vma-write-locked-args.patch; do
+        echo "Applying patch ${_p}"
+        patch -p2 < "${srcdir}/${_p}" || true
+    done
+
+    # Split és collect
+    "${srcdir}/get_defined340.sh"
+    "${srcdir}/split_conftest340.sh"
+    "${srcdir}/collect_tests340.sh"
+    mv conftest.new conftest.sh
+    "${srcdir}/get_configured340.sh"
+    chmod +x conftest.sh
+    cp -f conftest.sh uvm
+    mv Makefile.new Makefile
+    mv uvm/Makefile.new uvm/Makefile
+
+    # nv-gnu17-fms-extensions-2.patch
+    patch -p2 < "${srcdir}/nv-gnu17-fms-extensions-2.patch" || true
+
+    # Makefile módosítások
+    sed -i "s|-DNDEBUG$|-DNDEBUG -Wno-error=return-type -Wno-error=implicit-function-declaration|" Makefile
+    cd uvm
+    sed -i "s|-O2$|-O2 -Wno-error=incompatible-pointer-types|" Makefile
     cd ..
+
+    cd ../..
 }
 
 package_opencl-nvidia-340xx() {
@@ -152,6 +413,20 @@ package_nvidia-340xx-dkms() {
     install -dm 755 "${pkgdir}"/usr/src
     cp -dr --no-preserve='ownership' kernel "${pkgdir}/usr/src/nvidia-${pkgver}"
 
+    cat > "${pkgdir}/usr/src/nvidia-${pkgver}/dkms.conf" << EOF
+PACKAGE_NAME="nvidia-340xx"
+PACKAGE_VERSION="${pkgver}"
+CLEAN="make clean"
+BUILT_MODULE_NAME[0]="nvidia"
+BUILT_MODULE_LOCATION[0]="kernel"
+DEST_MODULE_LOCATION[0]="/kernel/drivers/video"
+BUILT_MODULE_NAME[1]="nvidia-uvm"
+BUILT_MODULE_LOCATION[1]="kernel/uvm"
+DEST_MODULE_LOCATION[1]="/kernel/drivers/video"
+MAKE[0]="make -j\$(nproc) module SYSSRC=/usr/lib/modules/\$kernelver/build KERNELRELEASE=\$kernelver IGNORE_CC_MISMATCH=1"
+STRIP[0]="yes"
+EOF
+
     install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
 }
 
@@ -172,6 +447,7 @@ package_nvidia-340xx-utils() {
     install -Dm755 nvidia_drv.so "${pkgdir}/usr/lib/xorg/modules/drivers/nvidia_drv.so"
 
     # GLX extension module for X
+    install -dm 755 "${pkgdir}/usr/lib/nvidia/xorg"
     install -Dm755 "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.${pkgver}"
     ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.1"
     ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so"
@@ -240,21 +516,25 @@ package_nvidia-340xx-utils() {
     install -Dm644 NVIDIA_Changelog "${pkgdir}/usr/share/doc/nvidia/NVIDIA_Changelog"
     ln -s nvidia "${pkgdir}/usr/share/doc/nvidia-utils"
 
-    # distro specific files
-    install -Dm644 "${srcdir}/nvidia-drm-outputclass.conf" "${pkgdir}/usr/share/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf"
-    install -Dm644 "${srcdir}/20-nvidia.conf" "${pkgdir}/etc/X11/xorg.conf.d/20-nvidia.conf"
+    # Xorg configuration files
+    install -Dm644 "${srcdir}/10-nvidia.conf.in" "${pkgdir}/usr/share/X11/xorg.conf.d/10-nvidia.conf"
+    install -Dm644 "${srcdir}/10-nvidia-modules.conf.in" "${pkgdir}/usr/share/X11/xorg.conf.d/10-nvidia-modules.conf"
 
+    # Udev rules és sysusers
     install -Dm644 "${srcdir}/nvidia-340xx.rules" "${pkgdir}/usr/lib/udev/rules.d/60-nvidia-340xx.rules"
-
     install -Dm644 "${srcdir}/nvidia-utils.sysusers" "${pkgdir}/usr/lib/sysusers.d/nvidia-340xx-utils.conf"
 
+    # Blacklist nouveau és nvidia-uvm betöltés
     echo "blacklist nouveau" | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
     echo "nvidia-uvm" | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/${pkgname}.conf"
 
-    create_links
-
+    # ld.so.conf.d
     install -dm 755 "${pkgdir}"/etc/ld.so.conf.d
     echo -e '/usr/lib/nvidia/' > "${pkgdir}"/etc/ld.so.conf.d/00-nvidia.conf
+
+    # Váltó script és systemd service
+    install -Dm755 "${srcdir}/nvidia-340xx-lib-switch" "${pkgdir}/usr/bin/nvidia-340xx-lib-switch"
+    install -Dm644 "${srcdir}/nvidia-340xx-lib-switch.service" "${pkgdir}/usr/lib/systemd/system/nvidia-340xx-lib-switch.service"
 }
 
 package_mhwd-nvidia-340xx() {

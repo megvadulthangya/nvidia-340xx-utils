@@ -1,0 +1,12 @@
+[Unit]
+Description=Switch between NVIDIA and open-source OpenGL libraries for 340xx legacy
+ConditionPathExists=/usr/bin/nvidia-340xx-lib-switch
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/nvidia-340xx-lib-switch
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
