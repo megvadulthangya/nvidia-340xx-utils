@@ -12,7 +12,7 @@ arch=('x86_64')
 url="https://www.nvidia.com/"
 license=('custom')
 options=('!strip')
-_pkg="NVIDIA-Linux-x86_64-${pkgver}"
+_pkg="NVIDIA-Linux-x86_64-${pkgver}-no-compat32"
 
 source=(
     "https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/${_pkg}.run"
