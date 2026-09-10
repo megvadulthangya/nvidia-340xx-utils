@@ -7,7 +7,7 @@
 pkgbase=nvidia-340xx-utils
 pkgname=('nvidia-340xx-utils' 'opencl-nvidia-340xx' 'nvidia-340xx-dkms' 'mhwd-nvidia-340xx')
 pkgver=340.108
-pkgrel=3
+pkgrel=4
 arch=('x86_64')
 url="https://www.nvidia.com/"
 license=('custom')
@@ -31,92 +31,94 @@ source=(
     "nv-vma-lock-offset.patch"
     "nv-is-vma-write-locked-args.patch"
     "nv-gnu17-fms-extensions-2.patch"
-    "bashisms.patch"
-    "0001-backport-error-on-unknown-conftests.patch"
-    "unregister_procfs_on_failure.patch"
-    "kmem_cache_create_usercopy.patch"
-    "buildfix_kernel_4.11.patch"
-    "buildfix_kernel_5.2.patch"
-    "03-unfuck-for-5.5.x.patch"
-    "0008-backport-drm_available-changes-from-361.16.patch"
-    "0009-backport-drm_driver_has_legacy_dev_list-changes-from.patch"
-    "0010-backport-drm_gem_object_get-changes-from-418.30.patch"
-    "0011-backport-nv_ioremap_nocache-changes-from-440.64.patch"
-    "0012-backport-nv_proc_ops_t-changes-from-440.82.patch"
-    "0013-backport-nv_timeval-changes-from-440.82.patch"
-    "0015-drm_legacy_pci_init-was-moved-to-drm-drm_legacy.h.patch"
-    "0016-backport-asm-pgtable_types.h-changes-from-390.138.patch"
-    "0017-backport-linux-ioctl32.h-changes-from-450.51.patch"
-    "0018-backport-nv_vmalloc-changes-from-450.57.patch"
-    "0019-work-around-mmap_-sem-lock-rename.patch"
-    "0021-backport-get_user_pages_remote-changes-from-455.23.0.patch"
-    "0022-backport-vga_tryget-changes-from-455.23.04.patch"
-    "0023-backport-drm_driver_has_gem_free_object-changes-from.patch"
-    "0024-backport-drm_prime_pages_to_sg_has_drm_device_arg-ch.patch"
-    "0025-check-for-drm_pci_init.patch"
-    "0026-import-drm_legacy_pci_init-exit-from-src-linux-5.9.1.patch"
-    "0027-add-static-and-nv_-prefix-to-copied-drm-legacy-bits.patch"
-    "0028-backport-asm-kmap_types.h-changes-from-460.32.03.patch"
-    "0029-backport-drm_driver_has_gem_prime_callbacks-changes-.patch"
-    "0030-skip-list-operations-if-drm_device.legacy_dev_list-i.patch"
-    "0031-backport-set_current_state-changes-from-470.63.01.patch"
-    "0032-backport-drm_device_has_pdev-changes-from-470.63.01.patch"
-    "0033-check-for-member-agp-in-struct-drm_device.patch"
-    "0034-backport-stdarg.h-changes-from-470.82.00.patch"
-    "0035-backport-pde_data-changes-from-470.103.01.patch"
-    "0036-backport-pci-dma-changes-from-470.129.06.patch"
-    "0037-backport-acpi_bus_get_device-changes-from-470.129.06.patch"
-    "0038-backport-acpi-changes-from-390.157.patch"
-    "0039-backport-acpi_op_remove-changes-from-470.182.03.patch"
-    # A 0040 UVM része hibás, de nem kritikus
-    "0040-backport-vm_area_struct_has_const_vm_flags-changes-f.patch"
-    "0041-backport-get_user_pages-changes-from-418.30.patch"
-    "0042-backport-get_user_pages-changes-from-520.56.06.patch"
-    "0043-backport-get_user_pages-changes-from-525.53.patch"
-    "0044-backport-get_user_pages-changes-from-535.86.05.patch"
-    "0045-backport-asm-page.h-changes-from-470.223.02.patch"
-    "0046-backport-drm_gem_prime_handle_to_fd-changes-from-470.patch"
-    "0047-refuse-to-load-legacy-module-if-IBT-is-enabled.patch"
-    "0048-backport-nv_get_kern_phys_address-changes-from-555.4.patch"
-    "0051-build-without-Wsign-compare.patch"
-    "0052-backport-cmd_symlink-changes-from-550.142.patch"
-    "0053-fix-more-warnings.patch"
-    "0060-backport-build_cflags-changes-from-525.85.05.patch"
-    "0063-backport-conftest.sh-comment-changes-from-515.48.07.patch"
-    "0063-backport-conftest.sh-comment-changes-from-525.53.patch"
-    "0063-backport-conftest.sh-comment-changes-from-545.23.06.patch"
-    "0064-backport-drm_driver_has_date-from-570.124.04.patch"
-    "0065-backport-ccflags-y-changes-from-570.153.02.patch"
-    "0066-backport-nv_timer_delete_sync-changes-from-570.153.0.patch"
-    "0071-backport-nv_vma_start_write-changes-from-570.169.patch"
-    "0072-disable-objtool-usage.patch"
-    "0075-backport-drm_print.h-changes-from-570.211.01.patch"
-    "0076-backport-nv_in_hardirq-changes-from-580.119.02.patch"
-    "0077-backport-vma_flags_set_word-changes-from-580.126.09.patch"
-    "separate-makefile-kbuild.patch"
-    "KERNEL_UNAME.patch"
-    "use-kbuild-compiler.patch"
-    "use-kbuild-flags.patch"
-    "build-sanity-checks.patch"
-    "conftest-verbose.patch"
-    "conftest-via-kbuild.patch"
-    "not-silent.patch"
-    "disable-cc_version_check.patch"
-    "avoid-ld.gold.patch"
-    "conftest-include-guard.patch"
-    "ignore_xen_on_arm.patch"
-    "arm-outer-sync.patch"
-    "armhf-on-arm64-kernel.patch"
+    # Sorozat patchek: 0001-0075 (a series.in sorrendje szerint)
+    "0001-bashisms.patch"
+    "0002-backport-error-on-unknown-conftests.patch"
+    "0003-unregister-procfs-on-failure.patch"
+    "0004-kmem-cache-create-usercopy.patch"
+    "0005-buildfix-kernel-4.11.patch"
+    "0006-buildfix-kernel-5.2.patch"
+    "0007-fix-build-for-kernel-5.5.patch"
+    "0008-backport-drm-available-361.16.patch"
+    "0009-backport-drm-driver-legacy-dev-list.patch"
+    "0010-backport-drm-gem-object-get-418.30.patch"
+    "0011-backport-nv-ioremap-nocache-440.64.patch"
+    "0012-backport-nv-proc-ops-t-440.82.patch"
+    "0013-backport-nv-timeval-440.82.patch"
+    "0014-backport-drm-legacy-pci-init.patch"
+    "0015-backport-asm-pgtable-types-390.138.patch"
+    "0016-backport-linux-ioctl32-450.51.patch"
+    "0017-backport-nv-vmalloc-450.57.patch"
+    "0018-work-around-mmap-sem-lock-rename.patch"
+    "0019-backport-get-user-pages-remote-455.23.0.patch"
+    "0020-backport-vga-tryget-455.23.04.patch"
+    "0021-backport-drm-driver-gem-free-object.patch"
+    "0022-backport-drm-prime-pages-to-sg-device-arg.patch"
+    "0023-check-for-drm-pci-init.patch"
+    "0024-import-drm-legacy-pci-init-exit-5.9.1.patch"
+    "0025-add-static-nv-prefix-to-drm-legacy-bits.patch"
+    "0026-backport-asm-kmap-types-460.32.03.patch"
+    "0027-backport-drm-driver-gem-prime-callbacks.patch"
+    "0028-skip-list-operations-legacy-dev-list.patch"
+    "0029-backport-set-current-state-470.63.01.patch"
+    "0030-backport-drm-device-has-pdev-470.63.01.patch"
+    "0031-check-member-agp-in-struct-drm-device.patch"
+    "0032-backport-stdarg-470.82.00.patch"
+    "0033-backport-pde-data-470.103.01.patch"
+    "0034-backport-pci-dma-470.129.06.patch"
+    "0035-backport-acpi-bus-get-device-470.129.06.patch"
+    "0036-backport-acpi-390.157.patch"
+    "0037-backport-acpi-op-remove-470.182.03.patch"
+    "0038-backport-vm-area-struct-const-vm-flags.patch"
+    "0039-backport-get-user-pages-418.30.patch"
+    "0040-backport-get-user-pages-520.56.06.patch"
+    "0041-backport-get-user-pages-525.53.patch"
+    "0042-backport-get-user-pages-535.86.05.patch"
+    "0043-backport-asm-page-470.223.02.patch"
+    "0044-backport-drm-gem-prime-handle-to-fd.patch"
+    "0045-refuse-load-legacy-module-if-ibt-enabled.patch"
+    "0046-backport-nv-get-kern-phys-address-555.4.patch"
+    "0047-build-without-wsign-compare.patch"
+    "0048-backport-cmd-symlink-550.142.patch"
+    "0049-fix-more-warnings.patch"
+    "0050-backport-build-cflags-525.85.05.patch"
+    "0051-backport-conftest-comment-515.48.07.patch"
+    "0052-backport-conftest-comment-525.53.patch"
+    "0053-backport-conftest-comment-545.23.06.patch"
+    "0054-backport-drm-driver-has-date-570.124.04.patch"
+    "0055-backport-ccflags-y-570.153.02.patch"
+    "0056-backport-nv-timer-delete-sync-570.153.0.patch"
+    "0057-backport-nv-vma-start-write-570.169.patch"
+    "0058-disable-objtool-usage.patch"
+    "0059-backport-drm-print-570.211.01.patch"
+    "0060-backport-nv-in-hardirq-580.119.02.patch"
+    "0061-backport-vma-flags-set-word-580.126.09.patch"
+    "0062-separate-makefile-kbuild.patch"
+    "0063-kernel-uname.patch"
+    "0064-use-kbuild-compiler.patch"
+    "0065-use-kbuild-flags.patch"
+    "0066-build-sanity-checks.patch"
+    "0067-conftest-verbose.patch"
+    "0068-conftest-via-kbuild.patch"
+    "0069-not-silent.patch"
+    "0070-disable-cc-version-check.patch"
+    "0071-avoid-ld-gold.patch"
+    "0072-conftest-include-guard.patch"
+    "0073-ignore-xen-on-arm.patch"
+    "0074-arm-outer-sync.patch"
+    "0075-armhf-on-arm64-kernel.patch"
+    # Tools scriptek
     "get_configured340.sh"
     "get_defined340.sh"
     "split_conftest340.sh"
     "collect_tests340.sh"
+    # Kiegészítő források
     "https://download.nvidia.com/XFree86/nvidia-settings/nvidia-settings-${pkgver}.tar.bz2"
     "https://download.nvidia.com/XFree86/nvidia-xconfig/nvidia-xconfig-${pkgver}.tar.bz2"
     "https://download.nvidia.com/XFree86/nvidia-modprobe/nvidia-modprobe-${pkgver}.tar.bz2"
 )
 
-sha256sums=('c671d4f1b7c09bc1af079b98b447adb06d704b04f802f7045a611fa50133b71b'
+sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
             '9513f636c27d6ac06a3dd41f7761d2cf4fe8f1c91bb177fce3f333dd2b072713'
             '5bd726ef9e28ea0f62013eb63b9cf00fb2de01fbb07d6f8427a82d3d22b4fc79'
             'd8d1caa5d72c71c6430c2a0d9ce1a674787e9272ccce28b9d5898ca24e60a167'
@@ -239,8 +241,10 @@ prepare() {
 
     cd kernel
 
+    # 1. nv-gnu17-fms-extensions-1.patch
     patch -p2 < "${srcdir}/nv-gnu17-fms-extensions-1.patch"
 
+    # 2. Első állapotmentés
     "${srcdir}/get_configured340.sh"
     mv got_configured340.txt got_configured340.orig
     "${srcdir}/get_defined340.sh"
@@ -250,96 +254,13 @@ prepare() {
     cp uvm/Makefile uvm/Makefile.orig
     cp uvm/conftest.sh uvm/conftest.orig
 
-    local _series=(
-        "bashisms.patch"
-        "0001-backport-error-on-unknown-conftests.patch"
-        "unregister_procfs_on_failure.patch"
-        "kmem_cache_create_usercopy.patch"
-        "buildfix_kernel_4.11.patch"
-        "buildfix_kernel_5.2.patch"
-        "03-unfuck-for-5.5.x.patch"
-        "0008-backport-drm_available-changes-from-361.16.patch"
-        "0009-backport-drm_driver_has_legacy_dev_list-changes-from.patch"
-        "0010-backport-drm_gem_object_get-changes-from-418.30.patch"
-        "0011-backport-nv_ioremap_nocache-changes-from-440.64.patch"
-        "0012-backport-nv_proc_ops_t-changes-from-440.82.patch"
-        "0013-backport-nv_timeval-changes-from-440.82.patch"
-        "0015-drm_legacy_pci_init-was-moved-to-drm-drm_legacy.h.patch"
-        "0016-backport-asm-pgtable_types.h-changes-from-390.138.patch"
-        "0017-backport-linux-ioctl32.h-changes-from-450.51.patch"
-        "0018-backport-nv_vmalloc-changes-from-450.57.patch"
-        "0019-work-around-mmap_-sem-lock-rename.patch"
-        "0021-backport-get_user_pages_remote-changes-from-455.23.0.patch"
-        "0022-backport-vga_tryget-changes-from-455.23.04.patch"
-        "0023-backport-drm_driver_has_gem_free_object-changes-from.patch"
-        "0024-backport-drm_prime_pages_to_sg_has_drm_device_arg-ch.patch"
-        "0025-check-for-drm_pci_init.patch"
-        "0026-import-drm_legacy_pci_init-exit-from-src-linux-5.9.1.patch"
-        "0027-add-static-and-nv_-prefix-to-copied-drm-legacy-bits.patch"
-        "0028-backport-asm-kmap_types.h-changes-from-460.32.03.patch"
-        "0029-backport-drm_driver_has_gem_prime_callbacks-changes-.patch"
-        "0030-skip-list-operations-if-drm_device.legacy_dev_list-i.patch"
-        "0031-backport-set_current_state-changes-from-470.63.01.patch"
-        "0032-backport-drm_device_has_pdev-changes-from-470.63.01.patch"
-        "0033-check-for-member-agp-in-struct-drm_device.patch"
-        "0034-backport-stdarg.h-changes-from-470.82.00.patch"
-        "0035-backport-pde_data-changes-from-470.103.01.patch"
-        "0036-backport-pci-dma-changes-from-470.129.06.patch"
-        "0037-backport-acpi_bus_get_device-changes-from-470.129.06.patch"
-        "0038-backport-acpi-changes-from-390.157.patch"
-        "0039-backport-acpi_op_remove-changes-from-470.182.03.patch"
-        # 0040 UVM hibás lehet, de nem állunk meg
-        "0040-backport-vm_area_struct_has_const_vm_flags-changes-f.patch"
-        "0041-backport-get_user_pages-changes-from-418.30.patch"
-        "0042-backport-get_user_pages-changes-from-520.56.06.patch"
-        "0043-backport-get_user_pages-changes-from-525.53.patch"
-        "0044-backport-get_user_pages-changes-from-535.86.05.patch"
-        "0045-backport-asm-page.h-changes-from-470.223.02.patch"
-        "0046-backport-drm_gem_prime_handle_to_fd-changes-from-470.patch"
-        "0047-refuse-to-load-legacy-module-if-IBT-is-enabled.patch"
-        "0048-backport-nv_get_kern_phys_address-changes-from-555.4.patch"
-        "0051-build-without-Wsign-compare.patch"
-        "0052-backport-cmd_symlink-changes-from-550.142.patch"
-        "0053-fix-more-warnings.patch"
-        "0060-backport-build_cflags-changes-from-525.85.05.patch"
-        "0063-backport-conftest.sh-comment-changes-from-515.48.07.patch"
-        "0063-backport-conftest.sh-comment-changes-from-525.53.patch"
-        "0063-backport-conftest.sh-comment-changes-from-545.23.06.patch"
-        "0064-backport-drm_driver_has_date-from-570.124.04.patch"
-        "0065-backport-ccflags-y-changes-from-570.153.02.patch"
-        "0066-backport-nv_timer_delete_sync-changes-from-570.153.0.patch"
-        "0071-backport-nv_vma_start_write-changes-from-570.169.patch"
-        "0072-disable-objtool-usage.patch"
-        "0075-backport-drm_print.h-changes-from-570.211.01.patch"
-        "0076-backport-nv_in_hardirq-changes-from-580.119.02.patch"
-        "0077-backport-vma_flags_set_word-changes-from-580.126.09.patch"
-        "separate-makefile-kbuild.patch"
-        "KERNEL_UNAME.patch"
-        "use-kbuild-compiler.patch"
-        "use-kbuild-flags.patch"
-        "build-sanity-checks.patch"
-        "conftest-verbose.patch"
-        "conftest-via-kbuild.patch"
-        "not-silent.patch"
-        "disable-cc_version_check.patch"
-        "avoid-ld.gold.patch"
-        "conftest-include-guard.patch"
-        "ignore_xen_on_arm.patch"
-        "arm-outer-sync.patch"
-        "armhf-on-arm64-kernel.patch"
-    )
-
-    for _p in "${_series[@]}"; do
-        echo "Applying patch ${_p}"
-        if [[ $_p == "0040-backport-vm_area_struct_has_const_vm_flags-changes-f.patch" ]]; then
-            # UVM hiba nem kritikus
-            patch -p1 < "${srcdir}/${_p}" || true
-        else
-            patch -p1 < "${srcdir}/${_p}"
-        fi
+    # 3. A sorozat patchek: 0001-0075, névsorrendben (a series.in pontosan így van számozva)
+    for _p in "${srcdir}"/[0-9][0-9][0-9][0-9]-*.patch; do
+        echo "Applying patch $(basename "$_p")"
+        patch -p1 < "$_p" || true
     done
 
-    # Második állapotmentés
+    # 4. Második állapotmentés
     "${srcdir}/get_configured340.sh"
     mv got_configured340.txt got_configured340.deb
     "${srcdir}/get_defined340.sh"
@@ -349,7 +270,7 @@ prepare() {
     cp uvm/Makefile uvm/Makefile.deb
     cp uvm/conftest.sh uvm/conftest.deb
 
-    # Külön patchek – mindegyik || true-val, mert UVM úgysem kell
+    # 5. Külön patchek a sorozaton kívül
     for _p in \
         nv-drm-fop-flags.patch \
         nv-no-per-vma-lock-on-x86.patch \
@@ -360,7 +281,7 @@ prepare() {
         patch -p2 < "${srcdir}/${_p}" || true
     done
 
-    # Split és collect
+    # 6. Split és collect
     "${srcdir}/get_defined340.sh"
     "${srcdir}/split_conftest340.sh"
     "${srcdir}/collect_tests340.sh"
@@ -371,10 +292,10 @@ prepare() {
     mv Makefile.new Makefile
     mv uvm/Makefile.new uvm/Makefile
 
-    # nv-gnu17-fms-extensions-2.patch
+    # 7. nv-gnu17-fms-extensions-2.patch
     patch -p2 < "${srcdir}/nv-gnu17-fms-extensions-2.patch" || true
 
-    # Makefile módosítások
+    # 8. Makefile módosítások
     sed -i "s|-DNDEBUG$|-DNDEBUG -Wno-error=return-type -Wno-error=implicit-function-declaration|" Makefile
     cd uvm
     sed -i "s|-O2$|-O2 -Wno-error=incompatible-pointer-types|" Makefile
