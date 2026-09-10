@@ -1,19 +1,31 @@
 post_install() {
     mhwd-gpu --check
-    cat <<'EOF'
 
->>> You must tell Xorg to use the nvidia driver with kernels >=5.11.0.
-    You must also set IgnoreABI option with Xorg version >= 21.1.1.
-    Minimal config example provided in /usr/share/nvidia-340xx/20-nvidia.conf
-    which you should manually place in /etc/X11/xorg.conf.d/
+    # Symlink-ek azonnali beállítása
+    if [ -x /usr/bin/nvidia-340xx-lib-switch ]; then
+        /usr/bin/nvidia-340xx-lib-switch || true
+    fi
 
-EOF
+    # systemd service regisztrálása, hogy bootkor is lefusson
+    systemctl daemon-reload >/dev/null 2>&1 || true
+    systemctl enable nvidia-340xx-lib-switch.service >/dev/null 2>&1 || true
 }
 
 post_upgrade() {
     post_install
 }
 
+pre_remove() {
+    # Még a fájlok törlése előtt állítsuk vissza a nyílt driver symlinkjeit
+    if [ -x /usr/bin/nvidia-340xx-lib-switch ]; then
+        /usr/bin/nvidia-340xx-lib-switch || true
+    fi
+}
+
 post_remove() {
     mhwd-gpu --check
+
+    # systemd service letiltása, mert a csomag már nincs fent
+    systemctl disable nvidia-340xx-lib-switch.service >/dev/null 2>&1 || true
+    systemctl daemon-reload >/dev/null 2>&1 || true
 }
