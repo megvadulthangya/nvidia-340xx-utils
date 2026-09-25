@@ -81,5 +81,5 @@ arm-outer-sync.patch
 armhf-on-arm64-kernel.patch
 0021-kernel-6.18-workqueue-flush.patch
 0024-kernel-7.0-screen_info.patch
-0025-vma-lock-6.19-plus.patch
+0025-vma-lock-7.0-plus.patch
 0029-kernel-7.3-acpi.patch

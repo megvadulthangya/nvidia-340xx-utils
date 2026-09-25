@@ -104,7 +104,7 @@ _debian_patches=(
     'armhf-on-arm64-kernel.patch'
     '0021-kernel-6.18-workqueue-flush.patch'
     '0024-kernel-7.0-screen_info.patch'
-    '0025-vma-lock-6.19-plus.patch'
+    '0025-vma-lock-7.0-plus.patch'
     '0029-kernel-7.3-acpi.patch'
 )
 
@@ -123,7 +123,7 @@ sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
             '327469a3803bd08c79c6295c94c050b3112e821c20dff2d36991474b90c24ff1'
             'd8d1caa5d72c71c6430c2a0d9ce1a674787e9272ccce28b9d5898ca24e60a167'
             '0e54249a7754b668b436f0f7aa7e95fff68edbb12a93dbee4660e09a8c695f84'
-            'd83c8ebccff68db6c26ca673d7e6e4ccb603c6d42b921a322553f875774b1ffe'
+            'ceb7c47986f914a2dad98d3907698c912a68da61fa1a8fbad3c867ca4bb350f8'
             '89c45a114a3420afc0de53a3d7e4182fe317f16e9a7e559c144c5e69d16e246e'
             '53db3bbf450dbacc6257194002535c5f8a6e6359d4c4fde5ec29603b2e085eb5'
             '36b5094922db3c925aa370ecc6fbd2d36980ff7147f64fadf81ac401503f5f1d'
@@ -208,7 +208,7 @@ sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
             '5e8cde32a6670e065686988b5b1491c04e20daff1207157ef152fee06488c76d'
             'ab5be0aa6c299c244cc736333cd4f255ae357feadb48e033a29afd528e4359d5'
             'ed2cb4c840b33a0bcfeecc8837f5fdb23af34e16746b8a76bc9c62d0edd950fe'
-            'a4afa485f5bb31a9c70f858edd20f4cf4bf2aaac93fa103402522430e10c0a2f'
+            'c0e6b4edb5d9c742705475e3350b725103c810a7bdcb6758199880b522788ec0'
             '6e16b6cd77f9319b18adb7117bfb56dfd58176d0dc7bac560529794c89ebef58')
 
 create_links() {
