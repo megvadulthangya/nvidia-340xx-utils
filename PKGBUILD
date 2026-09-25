@@ -102,6 +102,10 @@ _debian_patches=(
     'ignore_xen_on_arm.patch'
     'arm-outer-sync.patch'
     'armhf-on-arm64-kernel.patch'
+    '0021-kernel-6.18-workqueue-flush.patch'
+    '0024-kernel-7.0-screen_info.patch'
+    '0025-vma-lock-6.19-plus.patch'
+    '0029-kernel-7.3-acpi.patch'
 )
 
 source=("https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/${_pkg}.run"
@@ -201,7 +205,11 @@ sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
             '9af8b70497acf6c2ecd18bcdf62674f2e83e15a499eaa7d03d571ed754b26117'
             '7026a7bf9221096af816f70cd6ddd9eadf2740429018d1d1db395fc85d1daf54'
             '68876071bc948fddeb668f4561ab26943d04e00205c7385e0e9a15f4853c22e1'
-            '5e8cde32a6670e065686988b5b1491c04e20daff1207157ef152fee06488c76d')
+            '5e8cde32a6670e065686988b5b1491c04e20daff1207157ef152fee06488c76d'
+            'ab5be0aa6c299c244cc736333cd4f255ae357feadb48e033a29afd528e4359d5'
+            'ed2cb4c840b33a0bcfeecc8837f5fdb23af34e16746b8a76bc9c62d0edd950fe'
+            'a4afa485f5bb31a9c70f858edd20f4cf4bf2aaac93fa103402522430e10c0a2f'
+            '6e16b6cd77f9319b18adb7117bfb56dfd58176d0dc7bac560529794c89ebef58')
 
 create_links() {
     find "$pkgdir" -type f -name '*.so*' ! -path '*xorg/*' -print0 | while read -d $'\0' _lib; do
