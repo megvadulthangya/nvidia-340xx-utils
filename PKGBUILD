@@ -106,6 +106,9 @@ _debian_patches=(
     'kernel-7.0-screen_info.patch'
     'vma-lock-7.0-plus.patch'
     'kernel-7.3-acpi.patch'
+    'cve-2022-34670-nv-h-IS-OFFSET.patch'
+    'cve-2022-34674-vma-size.patch'
+    'cve-2022-34670-nv-c-usage-count-overflow.patch'
 )
 
 source=("https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/${_pkg}.run"
@@ -123,7 +126,7 @@ sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
             '327469a3803bd08c79c6295c94c050b3112e821c20dff2d36991474b90c24ff1'
             'd8d1caa5d72c71c6430c2a0d9ce1a674787e9272ccce28b9d5898ca24e60a167'
             '0e54249a7754b668b436f0f7aa7e95fff68edbb12a93dbee4660e09a8c695f84'
-            'e017088e135e575ca1135410a9d874ef47d8788bc04c3afab6bb22f309dc952a'
+            'cea8f7bc2de502fd02611a2ceaf316705f81d252e4c51dfeef341f848bfbc85b'
             '89c45a114a3420afc0de53a3d7e4182fe317f16e9a7e559c144c5e69d16e246e'
             '53db3bbf450dbacc6257194002535c5f8a6e6359d4c4fde5ec29603b2e085eb5'
             '36b5094922db3c925aa370ecc6fbd2d36980ff7147f64fadf81ac401503f5f1d'
@@ -209,7 +212,10 @@ sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
             'ab5be0aa6c299c244cc736333cd4f255ae357feadb48e033a29afd528e4359d5'
             'ed2cb4c840b33a0bcfeecc8837f5fdb23af34e16746b8a76bc9c62d0edd950fe'
             'c0e6b4edb5d9c742705475e3350b725103c810a7bdcb6758199880b522788ec0'
-            '6e16b6cd77f9319b18adb7117bfb56dfd58176d0dc7bac560529794c89ebef58')
+            '6e16b6cd77f9319b18adb7117bfb56dfd58176d0dc7bac560529794c89ebef58'
+            'de1b745cc919c9f6c60c73f453523885f24fd111a976262dde41537e7d8c69ba'
+            '5522b5f3c5469a0fae8087b80e03b88e77deb0383e8e7cf5a1c0646ac3898da8'
+            '6775ad7a49e8d9c7a36548cc4ede551f0c6b07bb5f74133a6fbe28b849114a56')
 
 create_links() {
     find "$pkgdir" -type f -name '*.so*' ! -path '*xorg/*' -print0 | while read -d $'\0' _lib; do
