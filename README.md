@@ -91,8 +91,11 @@ source-level security fixes from the 470 branch, porting them down to
   340.108, `nvidia-smi` reports the GPU correctly, hardware OpenGL
   confirmed.
 
-![NVIDIA 340xx on NVS 295 — glxgears / glxinfo / nvidia-smi](Screenshoots/2026-10-12_14-16.png)
-![NVIDIA 340xx on GeForce 210 — nvidia-settings / nvidia-smi](Screenshoots/2026-10-12_14-20.png)
+## System Information & Graphics Test
+![Manjaro Fastfetch and glxgears test](Screenshoots/manjaro-awesomewm-glxgears-system-info.png)
+
+## CUDA Compatibility Check
+![CUDA deviceQuery on Quadro NVS 295](Screenshoots/cuda-devicequery-quadro-nvs295.png)
 
 ## Live ISO
 
