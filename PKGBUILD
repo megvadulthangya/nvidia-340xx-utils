@@ -210,7 +210,7 @@ sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
             '7026a7bf9221096af816f70cd6ddd9eadf2740429018d1d1db395fc85d1daf54'
             '68876071bc948fddeb668f4561ab26943d04e00205c7385e0e9a15f4853c22e1'
             '5e8cde32a6670e065686988b5b1491c04e20daff1207157ef152fee06488c76d'
-            'ab5be0aa6c299c244cc736333cd4f255ae357feadb48e033a29afd528e4359d5'
+            'd4f5ba7eef4fec9af99845356c428b5ce1ad136a82b7217cd47491a4c2d15d1e'
             'ed2cb4c840b33a0bcfeecc8837f5fdb23af34e16746b8a76bc9c62d0edd950fe'
             'd192e94b0b11b176c19a1410366c77586d9b18180cb8f4488568d5c68d6cb22a'
             '6e16b6cd77f9319b18adb7117bfb56dfd58176d0dc7bac560529794c89ebef58'
@@ -355,6 +355,10 @@ EOF_HEADER
     fi
     sed -i "s/__JOBS/`nproc`/" dkms.conf
     sed -i -E 's/^([[:space:]]*)CLEAN/\1clean/' dkms.conf
+    # PREEMPT_RT flag beégetése a DKMS make hívásaiba, hogy RT kernelen
+# a DKMS automatikus újraépítés is átmenjen (nem csak a prebuilt csomag).
+    sed -i 's|^MAKE\[0\]="make |MAKE[0]="IGNORE_PREEMPT_RT_PRESENCE=1 make |' dkms.conf
+    sed -i 's|; make -C uvm |; IGNORE_PREEMPT_RT_PRESENCE=1 make -C uvm |' dkms.conf
     cd ..
 }
 
