@@ -220,8 +220,9 @@ _mpatch_opts=(
 #    --fuzz-factor 0.7       # default hasonlósági küszöb
     # --fuzz-factor 0.9     # szigorúbb: kevesebb eltűrés, több bukás
 #    --fuzz-factor 0.3     # lazább: csak debug célra!
-    # --fuzz-factor 0.0     # csak egzakt egyezés
+    # --fuzz-factor 0.0     # fuzzy kikapcsolva (egzakt + trailing-ws match)
     # --dry-run             # ne írjon, csak mutassa mit tenne
+    # -v                    # info szint (siker esetén is ír valamit)
     # -vvvv                 # debug riport hiba esetén (a prepare() auto hívja)
     # -R                    # patch megfordítása (reverse-engineer)
     # -c                    # vágólapról olvas (build-hez nem kell)
@@ -340,11 +341,13 @@ source=("https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/${_pkg}.r
         'nvidia-340xx.rules'
         'series.resolved'
         '20-nvidia.conf'
+        'nvidia-340xx-utils.conf'
+        'nvidia-340xx-utils-modules-load.conf'
         "${_debian_patches[@]}"
 )
 
-# Hash-ek: mind SKIP (a .run kivételével is), hogy a gyakran frissülő
-# Debian patchek és helper fájlok ne okozzanak felesleges build-hibát.
+# Hash-ek: mind SKIP (9 fix fájl + 89 Debian patch = 98 db), hogy a gyakran
+# frissülő Debian patchek és helper fájlok ne okozzanak felesleges build-hibát.
 sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
@@ -356,7 +359,8 @@ sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
-            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
+            'SKIP' 'SKIP')
 
 # =============================================================================
 # SYMLINK GENERÁTOR – a .so SONAME-ekhez szükséges linkek létrehozása.
@@ -659,8 +663,17 @@ package_nvidia-340xx-utils() {
     install -Dm644 "${srcdir}/nvidia-340xx.rules" "${pkgdir}/usr/lib/udev/rules.d/60-nvidia-340xx.rules"
     install -Dm644 "${srcdir}/nvidia-utils.sysusers" "${pkgdir}/usr/lib/sysusers.d/nvidia-340xx-utils.conf"
 
-    echo "blacklist nouveau" | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
-    echo "nvidia-uvm" | install -Dm644 /dev/stdin "${pkgdir}/usr/lib/modules-load.d/${pkgname}.conf"
+    # -----------------------------------------------------------------------
+    # modprobe.d: blacklist + softdep (fájlból, echo nélkül)
+    # -----------------------------------------------------------------------
+    install -Dm644 "${srcdir}/nvidia-340xx-utils.conf" \
+        "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+
+    # -----------------------------------------------------------------------
+    # modules-load.d: nvidia-uvm (fájlból, echo nélkül)
+    # -----------------------------------------------------------------------
+    install -Dm644 "${srcdir}/nvidia-340xx-utils-modules-load.conf" \
+        "${pkgdir}/usr/lib/modules-load.d/${pkgname}.conf"
 
     create_links
 
