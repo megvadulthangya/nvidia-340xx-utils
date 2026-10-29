@@ -4,10 +4,198 @@
 # Contributor: Jerry Xiao <aur@mail.jerryxiao.cc>
 # Contributor: Giancarlo Razzolini <grazzolini@archlinux.org>
 #
-# Átírva: Debian 340xx/main patch-sorozat használatára (81 patch).
-# A patchek a series.resolved sorrendjében, a kernel/ könyvtárban
-# kerülnek alkalmazásra. Manjaro-specifikus patchek (0001-0029) eltávolítva.
-# A patchek a PKGBUILD mellett, laposan (nincs debian-patches alkönyvtár).
+# Átírva: Debian 340xx/main patch-sorozat használatára (89 patch).
+# A patchek a series.resolved sorrendjében, a kernel/ könyvtárban,
+# mpatch-csel kerülnek alkalmazásra. Manjaro-specifikus patchek
+# (0001-0029) eltávolítva. A patchek a PKGBUILD mellett, laposan
+# (nincs debian-patches alkönyvtár).
+#
+# =============================================================================
+#  NVIDIA 340xx – Debian patch-sorozat mpatch-csel
+#  For Manjaro-awesome-respin
+# =============================================================================
+#
+#  ┌─────────────────────────────────────────────────────────────────────────┐
+#  │  MPATCH – HORDOZHATÓ KÉZIKÖNYV A PKGBUILD-BEN                          │
+#  │  (Ha elfelejted, itt minden megtalálható. Nem kell GitHub-ot nyitni.)  │
+#  └─────────────────────────────────────────────────────────────────────────┘
+#
+#  MI ÉS MIÉRT
+#  -----------
+#  Az mpatch egy fuzzy patchelő. Nem sorszám és nem bájt-pontos kontextus
+#  alapján illeszt, hanem hasonlósági algoritmussal keresi a patch helyét.
+#  Ez akkor hasznos, ha egy Debian patch egy kicsit elavult a forráshoz
+#  képest, DE a változtatás lényege még stimmel.
+#
+#  KOCKÁZAT
+#  --------
+#  A fuzzy matching rossz helyre is illeszthet. Ezért:
+#    - build-hez MINDIG használj --atomic-ot (minden-vagy-semmi)
+#    - a --fuzz-factor-t csak indokolt esetben lazítsd
+#    - ha egy patch elhasal: először debug, csak utána lazítás
+#
+#  ---------------------------------------------------------------------------
+#  BEVEZETŐ FORMÁTUMOK (amit az mpatch automatikusan felismer)
+#  ---------------------------------------------------------------------------
+#   1. Unified Diff          – ez a Debian patchek formátuma (--- a/ +++ b/)
+#   2. Markdown diff blokk   – ```diff ... ``` (LLM kimenet)
+#   3. Aider Search/Replace  – <<<<<<< SEARCH ... ======= ... >>>>>>> REPLACE
+#   4. Conflict Markers      – <<<< ==== >>>> (nincs benne fájlútvonal!)
+#
+#  A Debian patcheink az 1-es típusba esnek. A 4-es típus CLI-ből
+#  csak egy "patch_target" nevű fájlt tud patchelni – nekünk nem jó.
+#
+#  ---------------------------------------------------------------------------
+#  FORMÁTUM-LIMITÁCIÓK (ezeket az mpatch NEM tudja alkalmazni)
+#  ---------------------------------------------------------------------------
+#  Ha a patch az alábbiak bármelyikét tartalmazza, az mpatch NEM
+#  próbálkozik fuzzy-val, hanem azonnal leáll (exit 1, semmit nem ír):
+#
+#    - Git rename/copy:    "rename from" / "copy from"
+#    - Git binary patch:   "GIT binary patch"
+#    - Symlink / submodule mód (bármi, ami nem 100644 / 100755)
+#    - Context diff:       "diff -c"  → regeneráld "diff -u"-val
+#
+#  ⚠ EZ NEM FUZZ-PROBLÉMA. Ha egy patch elbukik, ELŐSZÖR ezt kell
+#  kizárni, mielőtt a fuzz-factort lazítanád. Ha ezek közül van benne,
+#  a --fuzz-factor 0.3 sem segít – a patchet ki kell venni, vagy
+#  kézzel át kell írni.
+#
+#  ---------------------------------------------------------------------------
+#  PARANCSONKÉNTI OPCIÓK (mind a PKGBUILD _mpatch_opts tömbben)
+#  ---------------------------------------------------------------------------
+#
+#  --fuzz-factor N            Hasonlósági küszöb, 0.0 – 1.0
+#     0.0   = fuzzy KIKAPCSOLVA. Az egzakt és a trailing-whitespace-t
+#             toleráló match továbbra is működik. NEM bájt-pontos, és
+#             NEM viselkedik úgy, mint a GNU patch. Preview: --dry-run.
+#     0.5   = laza (kockázatos, csak debug célra)
+#     0.7   = DEFAULT (a tool ajánlott értéke)
+#     0.9   = nagyon szigorú (kevés eltűréssel)
+#     1.0   = gyakorlatilag csak tökéletes egyezés
+#
+#     MIKOR MELYIK?
+#       - Build-hez: 0.7 (default) vagy 0.9 (ha van idő debugolni)
+#       - Ha egy patch elhasal 0.7-en: ELŐSZÖR a FORMÁTUM-LIMITÁCIÓK
+#         szekciót kell kizárni (fent), csak utána lazíts 0.5-re.
+#         Ha 0.5-ön sikerül, a patch elavult → FRISSÍTENI KELL,
+#         nem lazítani.
+#       - Ha 0.5 sem elég: a patch kontextusa túlságosan eltér,
+#         valószínűleg upstream már beolvasztotta → a patchet ki kell venni
+#
+#  -a / --atomic / --all-or-nothing   (a kettő UGYANAZ)
+#     Minden-vagy-semmi. Ha bármely hunk elhasal, egy fájl sem íródik.
+#     Build-hez KÖTELEZŐ. Kikapcsolva részleges írás lehetséges, ami
+#     csendben elrontja a forrásfát.
+#
+#     FONTOS: az atomic és a fuzz-factor ORTOGONÁLIS. Az atomic a
+#     write-szemantikát szabályozza, a fuzz a match-szemantikát.
+#     Az atomic-ot NEM kell a fuzz-hoz igazítani.
+#
+#     HATÓKÖR: egy mpatch híváson belül garantál atomitást. A while
+#     ciklusban minden patch külön hívás → ha a 40. elhasal, az első
+#     39 már lemezre íródott. Ez a mi esetünkben OK, mert a prepare()
+#     elején úgyis rm -rf "${_pkg}"-vel tiszta lappal indulunk.
+#
+#  -R                          Patch megfordítása (add ↔ remove).
+#                              Build-hez nem kell, de ha egy patch-et
+#                              vissza akarsz fejteni (mit is csinál
+#                              pontosan), akkor hasznos.
+#
+#  --dry-run                   Csak előnézet, nem ír fájlt.
+#                              Debug workflow 1. lépése: mit tenne?
+#
+#  -c / --clipboard            Vágólapról olvas. Ilyenkor az INPUT_FILE
+#                              elhagyható: `mpatch -c ./src` is működik.
+#                              Build-hez nem kell.
+#
+#  -                           stdin-ről olvas. Pipe esetén a '-' is
+#                              elhagyható: `git diff | mpatch ./src`.
+#                              Build-hez nem kell (fájlból olvasunk).
+#
+#  -v / --verbose              Ismételhető, szintenként:
+#                                -v     info (mit csinál épp)
+#                                -vv    debug
+#                                -vvv   trace
+#                                -vvvv  trace + debug-riport fájl
+#                              Siker esetén az mpatch ALAPBÓL SEMMIT
+#                              nem ír ki. Ha a build logban látni akarod
+#                              a patchek előrehaladását, tegyél -v-t a
+#                              _mpatch_opts-ba.
+#
+#  -h / --help                 Súgó.
+#
+#  ---------------------------------------------------------------------------
+#  EXIT KÓDOK ÉS KIMENET (a _mpatch_apply logikája erre épül)
+#  ---------------------------------------------------------------------------
+#
+#    Siker (minden hunk alkalmazva)     → exit 0, semmit nem ír ki
+#    Hiba (bármely hunk elbukik)        → exit 1, kiírja a legközelebbi
+#                                          találatot + hasonlóságot
+#    Nincs patch a bemenetben           → warning + exit 0  ⚠ CSAPDA
+#
+#  ⚠ A "nincs patch → exit 0" csapda: ha egy Debian patch véletlenül
+#  üres, vagy csak kommenteket tartalmaz, az mpatch NÉMÁN átengedi,
+#  és a build később, érthetetlen módon hasal el. A _mpatch_apply
+#  ezt nem tudja kiszűrni – ha gyanús egy patch, nézd meg a tartalmát.
+#
+#  ⚠ --atomic NÉLKÜL a sikeres hunok lemezre íródnak akkor is, ha
+#  más hunok elbuknak → részleges, csendben elrontott forrásfa.
+#  Ezért van --atomic kötelezően a _mpatch_opts-ban.
+#
+#  ---------------------------------------------------------------------------
+#  DEBUG WORKFLOW – HA EGY PATCH ELHASAL
+#  ---------------------------------------------------------------------------
+#
+#  1. LÉPÉS – Nézd meg a hibaüzenetet
+#     Az mpatch kiírja, melyik fájlt és melyik hunkot nem tudta alkalmazni.
+#     A prepare() automatikusan -vvvv-vel újrafuttatja a hibás patchet,
+#     és a debug-riportot a ${srcdir}/mpatch-debug/-be másolja.
+#
+#  2. LÉPÉS – Kizártad a FORMÁTUM-LIMITÁCIÓT?
+#     Nézd meg a patch tartalmát:
+#       grep -E 'rename from|copy from|GIT binary patch|^diff -c ' <patch>
+#     Ha bármelyik találat van: a fuzz nem segít, a patchet ki kell
+#     venni vagy kézzel át kell írni. Csak ha üres a találat, menj
+#     tovább a 3. lépésre. (Ez a leggyakrabban elfelejtett ellenőrzés.)
+#
+#  3. LÉPÉS – Nézd meg a debug-riportot
+#     mpatch-debug-report-<timestamp>.md a ${srcdir}/mpatch-debug/-ben.
+#     Tartalmazza:
+#       - az eredeti patch-et
+#       - a célfájl érintett részeit
+#       - inline word-level diffet a nem illeszkedő hunkról
+#       - a legközelebbi hasonló fájlútvonalakat (ha a fájl nem található)
+#
+#  4. LÉPÉS – Próbáld lazítani a fuzz-factort
+#     Szerkeszd a PKGBUILD-ben a _mpatch_opts-ot:
+#       --fuzz-factor 0.5
+#     Futtasd újra: makepkg -f
+#     Ha sikerül: a patch elavult, jegyezd fel, és később frissítsd.
+#     Ha nem sikerül: 5. lépés.
+#
+#  5. LÉPÉS – Reverse-engineer
+#     Nézd meg, mit csinál a patch eredetileg:
+#       mpatch -R --dry-run <patch> kernel/
+#     Ez megmutatja, mit venne ki a forrásból.
+#     Nézd meg a Debian upstream git history-t:
+#       https://salsa.debian.org/nvidia-team/nvidia-graphics-drivers
+#     Keress rá a patch nevére, nézd meg az eredeti commitot.
+#
+#  6. LÉPÉS – Kihagyás vagy frissítés
+#     Ha a patch már upstream-ben van: vedd ki a series.resolved-ból.
+#     Ha a patch elavult: frissítsd a Debian salsa repóból.
+#     Ha muszáj: írj saját patchet a különbségre.
+#
+#  ---------------------------------------------------------------------------
+#  TESZTELÉSI TIPP
+#  ---------------------------------------------------------------------------
+#  Egyetlen patch tesztelése a teljes sorozat helyett:
+#     cd ${srcdir}/NVIDIA-Linux-x86_64-340.108-no-compat32/kernel
+#     mpatch --dry-run --fuzz-factor 0.7 ${srcdir}/<patch> .
+#  Ez megmutatja, mit tenne, anélkül hogy bármit írna.
+#
+# =============================================================================
 
 pkgbase=nvidia-340xx-utils
 pkgname=('nvidia-340xx-utils' 'opencl-nvidia-340xx' 'nvidia-340xx-dkms' 'mhwd-nvidia-340xx')
@@ -17,7 +205,40 @@ arch=('x86_64')
 url="https://www.nvidia.com/"
 license=('custom')
 options=('!strip')
+makedepends=('mpatch-git')
 _pkg="NVIDIA-Linux-x86_64-${pkgver}-no-compat32"
+
+# =============================================================================
+# MPATCH KONFIGURÁCIÓ – ITT ÁLLÍTS, ITT DEBUGOLJ
+# =============================================================================
+#
+# Az AKTÍV opciók. A kommentelt sorok alternatívák – csak a # jelet kell
+# levenni / visszatenni. A sorrend nem számít.
+#
+_mpatch_opts=(
+    --atomic                # minden-vagy-semmi (build-hez kötelező)
+#    --fuzz-factor 0.7       # default hasonlósági küszöb
+    # --fuzz-factor 0.9     # szigorúbb: kevesebb eltűrés, több bukás
+#    --fuzz-factor 0.3     # lazább: csak debug célra!
+    # --fuzz-factor 0.0     # csak egzakt egyezés
+    # --dry-run             # ne írjon, csak mutassa mit tenne
+    # -vvvv                 # debug riport hiba esetén (a prepare() auto hívja)
+    # -R                    # patch megfordítása (reverse-engineer)
+    # -c                    # vágólapról olvas (build-hez nem kell)
+    # -                     # stdin-ről olvas (build-hez nem kell)
+)
+
+# Debug célú extra opciók, amiket a prepare() automatikusan fűz a
+# hibás patchek újrafuttatásához. Ne módosítsd, hacsak nem tudod mit teszel.
+_mpatch_debug_opts=(
+    -vvvv
+    --dry-run
+)
+
+# Ha 1-re állítod, a prepare() az ELSŐ hibás patchnél megáll, és
+# részletes debug-riportot generál a ${srcdir}/mpatch-debug/-be.
+# Ha 0-ra, akkor csak a hibát írja ki, debug nélkül.
+_mpatch_debug_on_failure=1
 
 # ---- Debian patch lista (a series.resolved-ból, sorrend kötelező) ----
 _debian_patches=(
@@ -122,103 +343,25 @@ source=("https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/${_pkg}.r
         "${_debian_patches[@]}"
 )
 
-sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
-            'fa6f1e43b468c7d5b7ad7880cd6be7520f37ebb6e7b8c2c9a08756249754af66'
-            '327469a3803bd08c79c6295c94c050b3112e821c20dff2d36991474b90c24ff1'
-            'd8d1caa5d72c71c6430c2a0d9ce1a674787e9272ccce28b9d5898ca24e60a167'
-            '0e54249a7754b668b436f0f7aa7e95fff68edbb12a93dbee4660e09a8c695f84'
-            'dc596198e551d2df146d612705f84c0494de4414c810392abbdeb43c0758727a'
-            '89c45a114a3420afc0de53a3d7e4182fe317f16e9a7e559c144c5e69d16e246e'
-            '53db3bbf450dbacc6257194002535c5f8a6e6359d4c4fde5ec29603b2e085eb5'
-            '36b5094922db3c925aa370ecc6fbd2d36980ff7147f64fadf81ac401503f5f1d'
-            '387dfddbb41404dd4c4319ed3a2b757a97b12d594a6d01d7f20ab6329d0b5065'
-            'c981dc01af43d9849d332596fb2cf20725c25d52843309348967d6a691b84318'
-            '5e5280a5425e6f93efdacb2c51757799caf3ee62a5539de0dbaa79858f5171ac'
-            'c7ed049ff0e594c8a7624474a34e8126ba60e36f1276a6c86c108b993d798350'
-            'e40155ff823709d4d1914126a30bb0c900a5bb4d06cdc4e493da19d51325a8f2'
-            'a052691c7546a1c8a2560a4008c4299ed5a61aab13d665b0502c6e8c0ab43c4e'
-            '05d24dfd238cec1fd56dd48c974dedba61ea799196c732ad79a149e8981c5e4d'
-            '32c03d606e6fab66d793f14b0079738e4e0e49a15da9202c5c36cf5dd09f209f'
-            '97eff24adfbe52e84cd4654166055e6428730ed1c7fc92f23464b804d704e9d2'
-            '86046d3172db427393f7ce239156d81cf200c9538d7216a8417d65347d8b1df0'
-            '38072af5bf86a5eb02c6442708d44ea9a1c08cd54f3aaad7c3c8ae1d305bdfd7'
-            'a666526244461d7aa1d70e848e9a48abfeafb7a4276815e009d4526004357b7d'
-            '1f7896050b2ccf626d274f512485e054cbdea2069e1915e68c3d65922e560a2c'
-            'f3aa16f33ec5dbc06cc4cfd4a7061f34b72eaefb9371de5c5262b8f5fc6c696a'
-            '8a41ca402f1f63091068fa30b9d6bc94b409b8301371e0d15e7d919eac76c508'
-            '6f750552b854712a010e80e4e7a13a3fcc3a6eee0936a5fb033a6e608ca18b64'
-            '6cddbf41336ec3623765751c9c55de293c097ec7bc4d3ade8e8212ba839a0489'
-            'ff56050a3af591e87544641d362db32697274fcc273e119de1c588552528c5e0'
-            '4754535a6972e1ab517834b374c6ce0cee884d69e5dc7e7d343d282660947867'
-            'e6214b451bbda0aceec67eba014007b03a17743c58673988ec3cbf65637fc066'
-            '3f3fbdddc245f27d21cef11501a9a24f211375f5b239f2c62c4f986584a8ae48'
-            'ef8e0cc932aa1ee54ab6cf4d3658487cc633393e762a890427e1b871fafbefae'
-            '881a9e649e9d74fe9ea3d62aa465c007bb4ced23f7bf06e1b29551fc2ee9345d'
-            '8d175bab568463e2e75aaeddbbc01a8b556cf1731cffe24355b2334193bce8ec'
-            '2d26f6c3f3ba3b8ef7cb768e50c775aef33c082a38d4a1a230aa1a4205ea5984'
-            '397dcfa0c9ff9339916204d59c3441da7177cc47a9037e6168c4829324391025'
-            '374838fc5197c0bbb1c448a5965dc106b182d970c329568a9d1c9b220e6efcb6'
-            'ed16aacb499493d53b1f62d995cf6a25aef21bb0ee451188ae08fc595f9f2383'
-            'e4fa7e850a76811212b0044bd899d69a8f8471f16887bb7c4cac502bd0572872'
-            'de1aa4e6d3c387d3c5f20ee9ace2ea8ca15d8fdf50bf33d7e664f73f504ecce7'
-            '3c162f7bfd38f8e772703b6eaf975eb969c1df4b3ce5147e762914ca9eef9356'
-            'df6e105030db178fd2e68d76bcba74edff92fb92fb3c0e695d46afaffda3a6bb'
-            '1dcee21fa0391f735e176aa268ade7942d5474878098ee1ade81f62fef3d2c37'
-            '72aba65dbdd7309d9139da4f74a727cf078dc4aeba9bbe05e8fa98638dc83bce'
-            '89461e5dc40205e520653845d7a06e4acf86ac2fdb2bd2361f0694bfe90f3c18'
-            '326593b6f853a7b201fa39afa020d476d34adda99d89e5a01c3813da93d91d60'
-            '2049d9104fb5e9165b56634d81f9dbf9e6ba0829d793abd75879d092fb79ddf2'
-            '14da3aa5a8d87f0bc763ad94da8506413894863e5519974634d16d86b995c47a'
-            'a89d1f02c5d6f153fc1bf5f9a6e361ec7740a745135df2f6dbad8ebd03eb233c'
-            'b51abc1699ed55b2d98fcf98797f2d02601b417053b33cba4cc366b6b969b399'
-            'ca2d1860af489791a40db17aff996ee77c193ba76894ff5b6a9604321ef976d9'
-            '15f27a296bedda4e029a445941e766f3eee1119f2e6975234885b627d730743d'
-            'ae4e805d42a228cf371a5d06ff32226d4bde5da78d8502d6331739a851ecde40'
-            '62711c3208d4a9f88579ef340421722f1e184ef6c691ef50914fead1a5ffd41d'
-            '72e9e7dfce14b0c3a356e80f622aeef9a7a07dfd8d839c58975b2aa377826c8e'
-            'fa165f694ce8eb33ba2ed516228aba3568910d2e3183dbb6664103bd122e075e'
-            'f2cd6b6f0e31320b73f8dea32df57b3001a0cadb0447b650677436ab6694d5fb'
-            '0de4fdc8864e61488be6837ed9801b9fbbb05136a2e0213fdcfc9815f1d3e463'
-            'ff8275c06f5e04ed094bef34ed8ce85d547c96294b3187bc9a7308faa339626d'
-            '58f83d92a0bf65c281b4d413427534f98b4e43005d1cfc07c1a4ca508eab43ec'
-            'f7b0b68e99fdb125c124f1deb0695804e0652aad180c18b1e75cc71b51d39bd7'
-            'd6ae0267f125927ec3fce2a7a749ec2c0c9d17ef0946a085912e9df9695c4f2c'
-            'd66a8914e8d2ec500b748321c2d76bc5387dde9a89f8047fab3ce0371d1488aa'
-            '4213eeb3bd0319d8ddb3d854ef0d4e973a7d826684b60cc57660e229cb9cbb6b'
-            '7a2208146ad8c434724c490f782fc1737b0efcd0d01807b05da24eeed0f2606c'
-            'e50b2d02b6955ba6dac57d48e239eb520deb00aaf03962813f61f5945a3950dd'
-            'a2fd203800d2cac8374c2a522b58fc78174c99af1b6ecff73973085800586d33'
-            'a9c4ee59cb27929d56b6b07b6440b5f31a7e7b5ef5447ae438f44065a13ad205'
-            '95d06b6420db0935839627a9f4f1d092e6fa02ade0016945ae88484d088f2a7b'
-            '53b37c1101dd9be2d126fd246af262a5305bd450257d22095e7c0baa469af03a'
-            '2b889de6c89511cd7639c95a94a51c517eca0fddce152cc467b16a5ab8d73d43'
-            '6fba0317d66c41052c41d2d9af7d85a88ae04fc323e84c34a44bcc4e1311489a'
-            '47e822a296c449f0dc5e2e8d20709682c2c91a84f388d67d14dd5a5d5250e7a3'
-            'aa93d5b4d3fbf625be9760655d5fd437b526ecbefbb5a95200dca7f0cd621fc9'
-            'd8f962fa0df9073f59bf4e090cb1ca01a2a6dcb99b6b4e9fdd52d71508551101'
-            'eed94bb582fcdbb00a7d8fd9cc10824e6b75c6ba4650d70c97ab5252669876d9'
-            'a01750010af1aa81dd4e9cb765bc805b60283cf19014bf90325deb776d4c9e54'
-            '1e3e683bf1fb2009e9b1f1b453554575f2a77fb88f0595f66a4d3568817c5909'
-            '37fb53681c82181059d3e8ae7a7940a3f0963ca0809f073670d0b8edcf212b10'
-            '89ead0ee685666c40c3e8a027fbc11bde145a28271b73d8ca8aa81b2a2859cc4'
-            'a5f7c23c16cb1cb2c07c5f4652b1ba8679ca9470c978e235e41a4b239de49d94'
-            'f97b0362393aa1265309e4d618040f8fe2a706f55dfaa5adc3e381c3fb40ce8c'
-            'a2c32ee9194d3bcf2eb6f734d93bbabe14d47a55d999135cd118383280aca307'
-            '57e94e83f16605c8301fdbde6834d3d0bcd95104fb11223067c025d59c951d9a'
-            '80e49700c9bed6b8172819e05f25bb7afe0cd9388c9ae908b24db6c9b83a16bf'
-            '9af8b70497acf6c2ecd18bcdf62674f2e83e15a499eaa7d03d571ed754b26117'
-            '7026a7bf9221096af816f70cd6ddd9eadf2740429018d1d1db395fc85d1daf54'
-            '68876071bc948fddeb668f4561ab26943d04e00205c7385e0e9a15f4853c22e1'
-            '5e8cde32a6670e065686988b5b1491c04e20daff1207157ef152fee06488c76d'
-            '1410d0431a9ec796fe9637663f11831903392ff708f1e503ed390d1d676134b6'
-            'ed2cb4c840b33a0bcfeecc8837f5fdb23af34e16746b8a76bc9c62d0edd950fe'
-            'd192e94b0b11b176c19a1410366c77586d9b18180cb8f4488568d5c68d6cb22a'
-            '6e16b6cd77f9319b18adb7117bfb56dfd58176d0dc7bac560529794c89ebef58'
-            'de1b745cc919c9f6c60c73f453523885f24fd111a976262dde41537e7d8c69ba'
-            '5522b5f3c5469a0fae8087b80e03b88e77deb0383e8e7cf5a1c0646ac3898da8'
-            '6775ad7a49e8d9c7a36548cc4ede551f0c6b07bb5f74133a6fbe28b849114a56'
-            '0ce6dd386a9fc1e8393b3f97c7b17cb9d1aab824ae7026d936738c3dae255fa3')
+# Hash-ek: mind SKIP (a .run kivételével is), hogy a gyakran frissülő
+# Debian patchek és helper fájlok ne okozzanak felesleges build-hibát.
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
+# =============================================================================
+# SYMLINK GENERÁTOR – a .so SONAME-ekhez szükséges linkek létrehozása.
+# Ezt a prepare() után minden package_* függvény meghívja.
+# =============================================================================
 create_links() {
     find "$pkgdir" -type f -name '*.so*' ! -path '*xorg/*' -print0 | while read -d $'\0' _lib; do
         _soname=$(dirname "${_lib}")/$(readelf -d "${_lib}" | grep -Po 'SONAME.*: \[\K[^]]*' || true)
@@ -226,6 +369,53 @@ create_links() {
         [[ -e "${_soname}" ]] || ln -s $(basename "${_lib}") "${_soname}"
         [[ -e "${_base}" ]] || ln -s $(basename "${_soname}") "${_base}"
     done
+}
+
+# =============================================================================
+# SEGÉDFÜGGVÉNYEK – mpatch wrapperek
+# =============================================================================
+
+# Az összes opció egy stringgé fűzése – így a prepare() tisztán hívhatja.
+_mpatch_cmd() {
+    printf '%s ' mpatch "${_mpatch_opts[@]}"
+}
+
+# Egy patch alkalmazása. Ha elhasal ÉS _mpatch_debug_on_failure=1,
+# akkor automatikusan -vvvv --dry-run-nal újrafuttatja, és a debug
+# riportot a ${srcdir}/mpatch-debug/-be másolja.
+_mpatch_apply() {
+    local _patchfile="$1"
+    local _targetdir="$2"
+    local _patchname
+    _patchname=$(basename "$_patchfile")
+
+    # 1. Alkalmazás – a VALÓDI exit kódot elmentjük, mielőtt bármi felülírná.
+    mpatch "${_mpatch_opts[@]}" "$_patchfile" "$_targetdir"
+    local _rc=$?
+
+    # 2. Siker → korai visszatérés, debug nem kell.
+    if [ "$_rc" -eq 0 ]; then
+        return 0
+    fi
+
+    # 3. Bukás → hibaüzenet, majd debug riport (ha be van kapcsolva).
+    echo "!!! mpatch FAILED (rc=$_rc): $_patchname" >&2
+
+    if [ "${_mpatch_debug_on_failure}" = "1" ]; then
+        local _dbgdir="${srcdir}/mpatch-debug"
+        mkdir -p "$_dbgdir"
+        echo ">>> Debug riport generálása: $_dbgdir/" >&2
+        ( cd "$_targetdir" && mpatch "${_mpatch_debug_opts[@]}" \
+            "$_patchfile" . ) > "$_dbgdir/${_patchname}.stdout" 2>&1 || true
+        find "${_targetdir}" -maxdepth 1 -name 'mpatch-debug-report-*.md' \
+            -exec mv {} "$_dbgdir/${_patchname}.report.md" \; 2>/dev/null || true
+        echo ">>> Nézd meg: $_dbgdir/${_patchname}.report.md" >&2
+        echo ">>> Ha elakadtál: olvasd el a PKGBUILD fejlécében a" >&2
+        echo ">>> 'DEBUG WORKFLOW – HA EGY PATCH ELHASAL' részt." >&2
+    fi
+
+    # 4. A VALÓDI hibakóddal térünk vissza → a hívó `|| exit 1` lefut.
+    return "$_rc"
 }
 
 prepare() {
@@ -237,9 +427,10 @@ prepare() {
     cd kernel
 
     # -----------------------------------------------------------------------
-    # 1. Debian patch-sorozat alkalmazása
+    # 1. Debian patch-sorozat alkalmazása mpatch-csel (series.resolved sorrend)
     # -----------------------------------------------------------------------
-    echo ">>> Debian patch-sorozat alkalmazása (kernel/ könyvtárban)..."
+    echo ">>> Debian patch-sorozat alkalmazása mpatch-csel (kernel/ könyvtárban)..."
+    echo ">>> Opciók: ${_mpatch_opts[*]}"
 
     if [ ! -f "${srcdir}/series.resolved" ]; then
         echo "!!! HIBA: hiányzik a series.resolved a PKGBUILD mellől"
@@ -262,11 +453,11 @@ prepare() {
         fi
 
         printf '[%3d/%d] %s\n' "$_n" "$_total" "$_patch"
-        patch -Np1 --forward --no-backup-if-mismatch < "$_patchfile" \
+        _mpatch_apply "$_patchfile" . \
             || { echo "!!! PATCH FAILED: $_patch"; exit 1; }
     done < "${srcdir}/series.resolved"
 
-    echo ">>> Mind a $_n patch sikeresen alkalmazva."
+    echo ">>> Mind a $_n patch sikeresen alkalmazva (mpatch)."
 
     # -----------------------------------------------------------------------
     # 2. UVM conftest.sh lecserélése a patchelt fő conftest.sh másolatára.
@@ -357,7 +548,7 @@ EOF_HEADER
     sed -i -E 's/^([[:space:]]*)CLEAN/\1clean/' dkms.conf
     # PREEMPT_RT flag beégetése a DKMS make hívásaiba, hogy RT kernelen
 # a DKMS automatikus újraépítés is átmenjen (nem csak a prebuilt csomag).
-    sed -i 's|^MAKE\[0\]="make |MAKE[0]="IGNORE_PREEMPT_RT_PRESENCE=1 make |' dkms.conf
+    sed -i 's|^MAKE\[0\]="make |MAKE\[0\]="IGNORE_PREEMPT_RT_PRESENCE=1 make |' dkms.conf
     sed -i 's|; make -C uvm |; IGNORE_PREEMPT_RT_PRESENCE=1 make -C uvm |' dkms.conf
     cd ..
 }
