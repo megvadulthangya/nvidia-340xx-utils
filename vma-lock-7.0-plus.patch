@@ -73,7 +73,7 @@
          rwsem_release(&vma->vmlock_dep_map, _RET_IP_);
          WARN_ON_ONCE(detached);
      }
-@@ -474 +500,2 @@
+-EXPORT_SYMBOL(nv_vma_start_write);
 -#endif // !NV_CAN_CALL_VMA_START_WRITE
 +#endif
 +EXPORT_SYMBOL(nv_vma_start_write);
