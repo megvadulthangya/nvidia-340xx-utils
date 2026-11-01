@@ -1,12 +1,94 @@
 --- a/nv-linux.h
 +++ b/nv-linux.h
-@@ -1702,8 +1702,8 @@
+@@ -1702,8 +1702,16 @@
  } nv_work_t;
  
- #define NV_TASKQUEUE_SCHEDULE(work) schedule_work(work)
+-#define NV_TASKQUEUE_SCHEDULE(work) schedule_work(work)
++extern struct workqueue_struct *nv_wq;
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)
++#define NV_WORKQUEUE_FLAGS WQ_PERCPU
++#else
++#define NV_WORKQUEUE_FLAGS 0
++#endif
++
++#define NV_TASKQUEUE_SCHEDULE(work) queue_work(nv_wq, (work))
  #define NV_TASKQUEUE_FLUSH()                           \
 -    flush_scheduled_work();
-+    flush_workqueue(system_wq);
++    flush_workqueue(nv_wq);
  #if (NV_INIT_WORK_ARGUMENT_COUNT == 2)
  #define NV_TASKQUEUE_INIT(tq,handler,data)             \
      {                                                  \
+--- a/nv.c
++++ b/nv.c
+@@ -762,16 +762,28 @@
+     NV_KMEM_CACHE_ALLOC_STACK(sp);
+     if (sp == NULL)
+     {
+         NV_KMEM_CACHE_DESTROY(nv_stack_t_cache);
+         nv_printf(NV_DBG_ERRORS, "NVRM: failed to allocate stack!\n");
+         rc = -ENOMEM;
+         goto failed4;
+     }
+ 
++    nv_wq = alloc_workqueue("nvidia", NV_WORKQUEUE_FLAGS, 0);
++    if (nv_wq == NULL)
++    {
++        NV_KMEM_CACHE_FREE_STACK(sp);
++        NV_KMEM_CACHE_DESTROY(nv_stack_t_cache);
++        nv_printf(NV_DBG_ERRORS, "NVRM: failed to allocate workqueue!\n");
++        rc = -ENOMEM;
++        goto failed4;
++    }
++
+     if (!rm_init_rm(sp))
+     {
++        destroy_workqueue(nv_wq);
++        nv_wq = NULL;
+         NV_KMEM_CACHE_FREE_STACK(sp);
+         NV_KMEM_CACHE_DESTROY(nv_stack_t_cache);
+         nv_printf(NV_DBG_ERRORS, "NVRM: rm_init_rm() failed!\n");
+         return -EIO;
+     }
+@@ -1045,16 +1057,30 @@
+     nv_unregister_procfs();
+ 
+ failed5:
+     rm_shutdown_rm(sp);
+ 
++    if (nv_wq)
++    {
++        destroy_workqueue(nv_wq);
++        nv_wq = NULL;
++    }
++
+     NV_KMEM_CACHE_FREE_STACK(sp);
+     NV_KMEM_CACHE_DESTROY(nv_stack_t_cache);
+ 
+ failed4:
++    if (nv_wq)
++    {
++        destroy_workqueue(nv_wq);
++        nv_wq = NULL;
++    }
++
+     nv_mem_pool_destroy();
+     nv_heap_destroy();
+ 
+     return rc;
+ }
+ 
++struct workqueue_struct *nv_wq;
++
+ void nvidia_exit_module(void)
+@@ -1085,4 +1111,9 @@
+     // Shutdown the resource manager
+     rm_shutdown_rm(sp);
+ 
++    if (nv_wq)
++    {
++        destroy_workqueue(nv_wq);
++        nv_wq = NULL;
++    }
++
+ #if defined(NVCPU_X86_64) && defined(CONFIG_IA32_EMULATION) && \
