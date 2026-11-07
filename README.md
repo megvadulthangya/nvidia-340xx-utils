@@ -27,6 +27,7 @@ The kernel module builds cleanly on the kernels listed below.
 | 7.1      | OK     |
 | 7.2      | OK     |
 | 7.3      | OK     |
+|linux-next| OK     |
 
 ## ⚠️ Display server requirement
 
