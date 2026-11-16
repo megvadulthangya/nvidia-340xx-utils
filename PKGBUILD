@@ -331,6 +331,7 @@ _debian_patches=(
     'cve-2022-34674-vma-size.patch'
     'cve-2022-34670-nv-c-usage-count-overflow.patch'
     'fixup-warnings.patch'
+    '340-taskqueue-tracking.patch'
 )
 
 source=("https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/${_pkg}.run"
@@ -352,7 +353,7 @@ sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
             '327469a3803bd08c79c6295c94c050b3112e821c20dff2d36991474b90c24ff1'
             'd8d1caa5d72c71c6430c2a0d9ce1a674787e9272ccce28b9d5898ca24e60a167'
             '0e54249a7754b668b436f0f7aa7e95fff68edbb12a93dbee4660e09a8c695f84'
-            '3fee1ac89d605f77cff9ebdb2569992449ba93b59787a2641b8b26ac2166fa02'
+            'a05584c6f280dff782e0af186e72791bf5fc1a5ad1e87e197ccf9534050ca339'
             '89c45a114a3420afc0de53a3d7e4182fe317f16e9a7e559c144c5e69d16e246e'
             'cb3980feb97f8952b1b2c67009958e31ca412487b9a6cbfc5bacaf8d562c5034'
             '942bb852968290c7e6dfc6b79c3fea8af19429a30c9bad4d433b890b13e0dd7d'
@@ -443,7 +444,8 @@ sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
             'de1b745cc919c9f6c60c73f453523885f24fd111a976262dde41537e7d8c69ba'
             '5522b5f3c5469a0fae8087b80e03b88e77deb0383e8e7cf5a1c0646ac3898da8'
             '6775ad7a49e8d9c7a36548cc4ede551f0c6b07bb5f74133a6fbe28b849114a56'
-            '0ce6dd386a9fc1e8393b3f97c7b17cb9d1aab824ae7026d936738c3dae255fa3')
+            '0ce6dd386a9fc1e8393b3f97c7b17cb9d1aab824ae7026d936738c3dae255fa3'
+            'd13a8b67c083d1a752396c22156643b163de6adb7f3edca23ed63d26b68fac1d')
 
 # =============================================================================
 # SYMLINK GENERÁTOR – a .so SONAME-ekhez szükséges linkek létrehozása.
