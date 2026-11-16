@@ -17,17 +17,18 @@ The kernel module builds cleanly on the kernels listed below.
 
 | Kernel   | Result |
 |----------|--------|
-| 6.1      | OK     |
-| 6.1-rt   | OK     |
-| 6.6      | OK     |
-| 6.6-rt   | OK     |
-| 6.12     | OK     |
-| 6.12-rt  | OK     |
-| 6.18     | OK     |
-| 7.1      | OK     |
-| 7.2      | OK     |
-| 7.3      | OK     |
-|linux-next| OK     |
+| 6.1                     | OK     |
+| 6.1-rt                  | OK     |
+| 6.6                     | OK     |
+| 6.6-rt                  | OK     |
+| 6.12                    | OK     |
+| 6.12-rt                 | OK     |
+| 6.18                    | OK     |
+| 7.1                     | OK     |
+| 7.2                     | OK     |
+| 7.3                     | OK     |
+| 7.4                     | OK     |
+| 7.4.0-rc2-next-20261113 | OK     |
 
 ## ⚠️ Display server requirement
 
