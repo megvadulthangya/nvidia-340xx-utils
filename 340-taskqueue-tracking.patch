@@ -22,8 +22,8 @@
          free_irq(nv->interrupt_line, (void *)nvl);                  \
          if (nv->flags & NV_FLAG_USES_MSI)                           \
              NV_PCI_DISABLE_MSI(nvl->dev);                           \
-+        if (NV_IS_GVI_DEVICE(nv))
-+            NV_TASKQUEUE_FLUSH();
++        if (NV_IS_GVI_DEVICE(nv))\
++            NV_TASKQUEUE_FLUSH();\
          rm_shutdown_adapter(sp, nv);                                \
      }
  
