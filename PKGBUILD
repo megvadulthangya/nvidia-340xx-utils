@@ -200,12 +200,12 @@
 pkgbase=nvidia-340xx-utils
 pkgname=('nvidia-340xx-utils' 'opencl-nvidia-340xx' 'nvidia-340xx-dkms' 'mhwd-nvidia-340xx')
 pkgver=340.108
-pkgrel=4
+pkgrel=5
 arch=('x86_64')
 url="https://www.nvidia.com/"
 license=('custom')
 options=('!strip')
-makedepends=('mpatch-git')
+makedepends=('mpatch-git' 'nvidia-driver-assistant')
 _pkg="NVIDIA-Linux-x86_64-${pkgver}-no-compat32"
 
 # =============================================================================
@@ -335,7 +335,6 @@ _debian_patches=(
 )
 
 source=("https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/${_pkg}.run"
-        'mhwd-nvidia'
         'nvidia-340xx-utils.install'
         'nvidia-utils.sysusers'
         'nvidia-340xx.rules'
@@ -349,7 +348,6 @@ source=("https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/${_pkg}.r
 # Hash-ek: mind SKIP (9 fix fájl + 89 Debian patch = 98 db), hogy a gyakran
 # frissülő Debian patchek és helper fájlok ne okozzanak felesleges build-hibát.
 sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
-            'fa6f1e43b468c7d5b7ad7880cd6be7520f37ebb6e7b8c2c9a08756249754af66'
             '327469a3803bd08c79c6295c94c050b3112e821c20dff2d36991474b90c24ff1'
             'd8d1caa5d72c71c6430c2a0d9ce1a674787e9272ccce28b9d5898ca24e60a167'
             '0e54249a7754b668b436f0f7aa7e95fff68edbb12a93dbee4660e09a8c695f84'
@@ -773,12 +771,27 @@ package_mhwd-nvidia-340xx() {
 
     install -d -m755 "${pkgdir}/var/lib/mhwd/ids/pci/"
 
+    # Generate the MHWD ID list from the NVIDIA supportedchips data shipped
+    # with nvidia-driver-assistant. Only the 4-digit PCI Device IDs are written;
+    # Subsystem Vendor IDs and Subsystem Device IDs are intentionally ignored.
+    nvidia-driver-assistant --generate-ids 340 \
+        > "${pkgdir}/var/lib/mhwd/ids/pci/nvidia-340xx.ids"
+}
+#}
+#deprecated mhwd-nvidia stays just for info
+#package_mhwd-nvidia-340xx() {
+#    pkgdesc="MHWD module-ids for nvidia ${pkgver}"
+#    arch=('any')
+#    depends=('mhwd')
+#
+#    install -d -m755 "${pkgdir}/var/lib/mhwd/ids/pci/"
+#
     # A Debian build-stamp mintájára az eredeti nv-kernel.o-t a prepare()
     # átnevezte nv-kernel-amd64.o_binary-re. A blob tartalma azonos, így
     # az mhwd-nvidia script ugyanúgy ki tudja olvasni belőle a támogatott
     # PCI ID-kat.
-    sh -e ${srcdir}/mhwd-nvidia \
-        ${srcdir}/${_pkg}/README.txt \
-        ${srcdir}/${_pkg}/kernel/nv-kernel-amd64.o_binary \
-        > ${pkgdir}/var/lib/mhwd/ids/pci/nvidia-340xx.ids
-}
+#    sh -e ${srcdir}/mhwd-nvidia \
+#        ${srcdir}/${_pkg}/README.txt \
+#        ${srcdir}/${_pkg}/kernel/nv-kernel-amd64.o_binary \
+#        > ${pkgdir}/var/lib/mhwd/ids/pci/nvidia-340xx.ids
+#}
