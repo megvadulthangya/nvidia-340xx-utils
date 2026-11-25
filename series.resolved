@@ -46,6 +46,7 @@ buildfix_kernel_5.2.patch
 0045-backport-asm-page.h-changes-from-470.223.02.patch
 0046-backport-drm_gem_prime_handle_to_fd-changes-from-470.patch
 0047-refuse-to-load-legacy-module-if-IBT-is-enabled.patch
+0048-backport-screen_info-changes-from-450.51.patch
 0048-backport-nv_get_kern_phys_address-changes-from-555.4.patch
 0051-build-without-Wsign-compare.patch
 0052-backport-cmd_symlink-changes-from-550.142.patch
@@ -64,6 +65,11 @@ buildfix_kernel_5.2.patch
 0076-backport-nv_in_hardirq-changes-from-580.119.02.patch
 0077-backport-vma_flags_set_word-changes-from-580.126.09.patch
 0078-backport-vma_flags_set_word-changes-from-580.126.09-.patch
+0084-backport-is_vma_write_locked_has_mm_lock_seq_arg-cha.patch
+0085-backport-acpi-changes-from-430.09.patch
+0086-backport-acpi-changes-from-510.85.02.patch
+0090-backport-MODULE_DESCRIPTION-changes-from-580.159.03.patch
+0091-backport-MODULE_DESCRIPTION-changes-from-580.159.03-.patch
 separate-makefile-kbuild.patch
 KERNEL_UNAME.patch
 use-kbuild-compiler.patch
@@ -79,13 +85,3 @@ conftest-include-guard.patch
 ignore_xen_on_arm.patch
 arm-outer-sync.patch
 armhf-on-arm64-kernel.patch
-kernel-7.0-screen_info.patch
-vma-lock-7.0-plus.patch
-kernel-7.3-acpi.patch
-cve-2022-34670-nv-h-IS-OFFSET.patch
-cve-2022-34674-vma-size.patch
-cve-2022-34670-nv-c-usage-count-overflow.patch
-fixup-warnings.patch
-340-taskqueue-tracking.patch
-340-procfs-next-compat.patch
-340-msr-rdmsrq-compat.patch

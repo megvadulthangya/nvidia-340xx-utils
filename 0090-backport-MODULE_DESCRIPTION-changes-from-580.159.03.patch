@@ -1,0 +1,24 @@
+From 7518546dd5b76a2c733ffca3455dc471daa8657d Mon Sep 17 00:00:00 2001
+From: Andreas Beckmann <anbe@debian.org>
+Date: Sat, 12 Sep 2026 04:21:38 +0200
+Subject: [PATCH] backport MODULE_DESCRIPTION changes from 580.159.03
+
+---
+ nv-frontend.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/nv-frontend.c b/nv-frontend.c
+index 03bf54e7..23bda449 100644
+--- a/nv-frontend.c
++++ b/nv-frontend.c
+@@ -23,6 +23,7 @@ MODULE_INFO(supported, "external");
+ #if defined(MODULE_VERSION)
+ MODULE_VERSION(NV_VERSION_STRING);
+ #endif
++MODULE_DESCRIPTION("NVIDIA core GPU kernel module");
+ 
+ #ifdef MODULE_ALIAS_CHARDEV_MAJOR
+ MODULE_ALIAS_CHARDEV_MAJOR(NV_MAJOR_DEVICE_NUMBER);
+-- 
+2.39.5
+
