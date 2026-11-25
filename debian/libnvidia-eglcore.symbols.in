@@ -1,4 +1,0 @@
-libnvidia-eglcore.so.#VERSION# libnvidia-eglcore-#VERSION#, #PACKAGE# #MINVER#
- NvGlEglGetFunctions@Base 331
-libnvidia-glsi.so.#VERSION# libnvidia-eglcore-#VERSION#, #PACKAGE# #MINVER#
- (regex)"^_nv\d*glsi@Base$" 0

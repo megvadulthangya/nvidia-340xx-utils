@@ -1,0 +1,801 @@
+# Maintainer: Gyöngyösi Gábor <gabor at gshoots dot hu>
+# Contributor: Philip Müller <philm[at]manjaro[dot]org>
+# Contributor: Thomas Baechler <thomas@archlinux.org>
+# Contributor: Jerry Xiao <aur@mail.jerryxiao.cc>
+# Contributor: Giancarlo Razzolini <grazzolini@archlinux.org>
+#
+# Átírva: Debian 340xx/main patch-sorozat használatára (89 patch).
+# A patchek a series.resolved sorrendjében, a kernel/ könyvtárban,
+# mpatch-csel kerülnek alkalmazásra. Manjaro-specifikus patchek
+# (0001-0029) eltávolítva. A patchek a PKGBUILD mellett, laposan
+# (nincs debian-patches alkönyvtár).
+#
+# =============================================================================
+#  NVIDIA 340xx – Debian patch-sorozat mpatch-csel
+#  For Manjaro-awesome-respin
+# =============================================================================
+#
+#  ┌─────────────────────────────────────────────────────────────────────────┐
+#  │  MPATCH – HORDOZHATÓ KÉZIKÖNYV A PKGBUILD-BEN                          │
+#  │  (Ha elfelejted, itt minden megtalálható. Nem kell GitHub-ot nyitni.)  │
+#  └─────────────────────────────────────────────────────────────────────────┘
+#
+#  MI ÉS MIÉRT
+#  -----------
+#  Az mpatch egy fuzzy patchelő. Nem sorszám és nem bájt-pontos kontextus
+#  alapján illeszt, hanem hasonlósági algoritmussal keresi a patch helyét.
+#  Ez akkor hasznos, ha egy Debian patch egy kicsit elavult a forráshoz
+#  képest, DE a változtatás lényege még stimmel.
+#
+#  KOCKÁZAT
+#  --------
+#  A fuzzy matching rossz helyre is illeszthet. Ezért:
+#    - build-hez MINDIG használj --atomic-ot (minden-vagy-semmi)
+#    - a --fuzz-factor-t csak indokolt esetben lazítsd
+#    - ha egy patch elhasal: először debug, csak utána lazítás
+#
+#  ---------------------------------------------------------------------------
+#  BEVEZETŐ FORMÁTUMOK (amit az mpatch automatikusan felismer)
+#  ---------------------------------------------------------------------------
+#   1. Unified Diff          – ez a Debian patchek formátuma (--- a/ +++ b/)
+#   2. Markdown diff blokk   – ```diff ... ``` (LLM kimenet)
+#   3. Aider Search/Replace  – <<<<<<< SEARCH ... ======= ... >>>>>>> REPLACE
+#   4. Conflict Markers      – <<<< ==== >>>> (nincs benne fájlútvonal!)
+#
+#  A Debian patcheink az 1-es típusba esnek. A 4-es típus CLI-ből
+#  csak egy "patch_target" nevű fájlt tud patchelni – nekünk nem jó.
+#
+#  ---------------------------------------------------------------------------
+#  FORMÁTUM-LIMITÁCIÓK (ezeket az mpatch NEM tudja alkalmazni)
+#  ---------------------------------------------------------------------------
+#  Ha a patch az alábbiak bármelyikét tartalmazza, az mpatch NEM
+#  próbálkozik fuzzy-val, hanem azonnal leáll (exit 1, semmit nem ír):
+#
+#    - Git rename/copy:    "rename from" / "copy from"
+#    - Git binary patch:   "GIT binary patch"
+#    - Symlink / submodule mód (bármi, ami nem 100644 / 100755)
+#    - Context diff:       "diff -c"  → regeneráld "diff -u"-val
+#
+#  ⚠ EZ NEM FUZZ-PROBLÉMA. Ha egy patch elbukik, ELŐSZÖR ezt kell
+#  kizárni, mielőtt a fuzz-factort lazítanád. Ha ezek közül van benne,
+#  a --fuzz-factor 0.3 sem segít – a patchet ki kell venni, vagy
+#  kézzel át kell írni.
+#
+#  ---------------------------------------------------------------------------
+#  PARANCSONKÉNTI OPCIÓK (mind a PKGBUILD _mpatch_opts tömbben)
+#  ---------------------------------------------------------------------------
+#
+#  --fuzz-factor N            Hasonlósági küszöb, 0.0 – 1.0
+#     0.0   = fuzzy KIKAPCSOLVA. Az egzakt és a trailing-whitespace-t
+#             toleráló match továbbra is működik. NEM bájt-pontos, és
+#             NEM viselkedik úgy, mint a GNU patch. Preview: --dry-run.
+#     0.5   = laza (kockázatos, csak debug célra)
+#     0.7   = DEFAULT (a tool ajánlott értéke)
+#     0.9   = nagyon szigorú (kevés eltűréssel)
+#     1.0   = gyakorlatilag csak tökéletes egyezés
+#
+#     MIKOR MELYIK?
+#       - Build-hez: 0.7 (default) vagy 0.9 (ha van idő debugolni)
+#       - Ha egy patch elhasal 0.7-en: ELŐSZÖR a FORMÁTUM-LIMITÁCIÓK
+#         szekciót kell kizárni (fent), csak utána lazíts 0.5-re.
+#         Ha 0.5-ön sikerül, a patch elavult → FRISSÍTENI KELL,
+#         nem lazítani.
+#       - Ha 0.5 sem elég: a patch kontextusa túlságosan eltér,
+#         valószínűleg upstream már beolvasztotta → a patchet ki kell venni
+#
+#  -a / --atomic / --all-or-nothing   (a kettő UGYANAZ)
+#     Minden-vagy-semmi. Ha bármely hunk elhasal, egy fájl sem íródik.
+#     Build-hez KÖTELEZŐ. Kikapcsolva részleges írás lehetséges, ami
+#     csendben elrontja a forrásfát.
+#
+#     FONTOS: az atomic és a fuzz-factor ORTOGONÁLIS. Az atomic a
+#     write-szemantikát szabályozza, a fuzz a match-szemantikát.
+#     Az atomic-ot NEM kell a fuzz-hoz igazítani.
+#
+#     HATÓKÖR: egy mpatch híváson belül garantál atomitást. A while
+#     ciklusban minden patch külön hívás → ha a 40. elhasal, az első
+#     39 már lemezre íródott. Ez a mi esetünkben OK, mert a prepare()
+#     elején úgyis rm -rf "${_pkg}"-vel tiszta lappal indulunk.
+#
+#  -R                          Patch megfordítása (add ↔ remove).
+#                              Build-hez nem kell, de ha egy patch-et
+#                              vissza akarsz fejteni (mit is csinál
+#                              pontosan), akkor hasznos.
+#
+#  --dry-run                   Csak előnézet, nem ír fájlt.
+#                              Debug workflow 1. lépése: mit tenne?
+#
+#  -c / --clipboard            Vágólapról olvas. Ilyenkor az INPUT_FILE
+#                              elhagyható: `mpatch -c ./src` is működik.
+#                              Build-hez nem kell.
+#
+#  -                           stdin-ről olvas. Pipe esetén a '-' is
+#                              elhagyható: `git diff | mpatch ./src`.
+#                              Build-hez nem kell (fájlból olvasunk).
+#
+#  -v / --verbose              Ismételhető, szintenként:
+#                                -v     info (mit csinál épp)
+#                                -vv    debug
+#                                -vvv   trace
+#                                -vvvv  trace + debug-riport fájl
+#                              Siker esetén az mpatch ALAPBÓL SEMMIT
+#                              nem ír ki. Ha a build logban látni akarod
+#                              a patchek előrehaladását, tegyél -v-t a
+#                              _mpatch_opts-ba.
+#
+#  -h / --help                 Súgó.
+#
+#  ---------------------------------------------------------------------------
+#  EXIT KÓDOK ÉS KIMENET (a _mpatch_apply logikája erre épül)
+#  ---------------------------------------------------------------------------
+#
+#    Siker (minden hunk alkalmazva)     → exit 0, semmit nem ír ki
+#    Hiba (bármely hunk elbukik)        → exit 1, kiírja a legközelebbi
+#                                          találatot + hasonlóságot
+#    Nincs patch a bemenetben           → warning + exit 0  ⚠ CSAPDA
+#
+#  ⚠ A "nincs patch → exit 0" csapda: ha egy Debian patch véletlenül
+#  üres, vagy csak kommenteket tartalmaz, az mpatch NÉMÁN átengedi,
+#  és a build később, érthetetlen módon hasal el. A _mpatch_apply
+#  ezt nem tudja kiszűrni – ha gyanús egy patch, nézd meg a tartalmát.
+#
+#  ⚠ --atomic NÉLKÜL a sikeres hunok lemezre íródnak akkor is, ha
+#  más hunok elbuknak → részleges, csendben elrontott forrásfa.
+#  Ezért van --atomic kötelezően a _mpatch_opts-ban.
+#
+#  ---------------------------------------------------------------------------
+#  DEBUG WORKFLOW – HA EGY PATCH ELHASAL
+#  ---------------------------------------------------------------------------
+#
+#  1. LÉPÉS – Nézd meg a hibaüzenetet
+#     Az mpatch kiírja, melyik fájlt és melyik hunkot nem tudta alkalmazni.
+#     A prepare() automatikusan -vvvv-vel újrafuttatja a hibás patchet,
+#     és a debug-riportot a ${srcdir}/mpatch-debug/-be másolja.
+#
+#  2. LÉPÉS – Kizártad a FORMÁTUM-LIMITÁCIÓT?
+#     Nézd meg a patch tartalmát:
+#       grep -E 'rename from|copy from|GIT binary patch|^diff -c ' <patch>
+#     Ha bármelyik találat van: a fuzz nem segít, a patchet ki kell
+#     venni vagy kézzel át kell írni. Csak ha üres a találat, menj
+#     tovább a 3. lépésre. (Ez a leggyakrabban elfelejtett ellenőrzés.)
+#
+#  3. LÉPÉS – Nézd meg a debug-riportot
+#     mpatch-debug-report-<timestamp>.md a ${srcdir}/mpatch-debug/-ben.
+#     Tartalmazza:
+#       - az eredeti patch-et
+#       - a célfájl érintett részeit
+#       - inline word-level diffet a nem illeszkedő hunkról
+#       - a legközelebbi hasonló fájlútvonalakat (ha a fájl nem található)
+#
+#  4. LÉPÉS – Próbáld lazítani a fuzz-factort
+#     Szerkeszd a PKGBUILD-ben a _mpatch_opts-ot:
+#       --fuzz-factor 0.5
+#     Futtasd újra: makepkg -f
+#     Ha sikerül: a patch elavult, jegyezd fel, és később frissítsd.
+#     Ha nem sikerül: 5. lépés.
+#
+#  5. LÉPÉS – Reverse-engineer
+#     Nézd meg, mit csinál a patch eredetileg:
+#       mpatch -R --dry-run <patch> kernel/
+#     Ez megmutatja, mit venne ki a forrásból.
+#     Nézd meg a Debian upstream git history-t:
+#       https://salsa.debian.org/nvidia-team/nvidia-graphics-drivers
+#     Keress rá a patch nevére, nézd meg az eredeti commitot.
+#
+#  6. LÉPÉS – Kihagyás vagy frissítés
+#     Ha a patch már upstream-ben van: vedd ki a series.resolved-ból.
+#     Ha a patch elavult: frissítsd a Debian salsa repóból.
+#     Ha muszáj: írj saját patchet a különbségre.
+#
+#  ---------------------------------------------------------------------------
+#  TESZTELÉSI TIPP
+#  ---------------------------------------------------------------------------
+#  Egyetlen patch tesztelése a teljes sorozat helyett:
+#     cd ${srcdir}/NVIDIA-Linux-x86_64-340.108-no-compat32/kernel
+#     mpatch --dry-run --fuzz-factor 0.7 ${srcdir}/<patch> .
+#  Ez megmutatja, mit tenne, anélkül hogy bármit írna.
+#
+# =============================================================================
+
+pkgbase=nvidia-340xx-utils
+pkgname=('nvidia-340xx-utils' 'opencl-nvidia-340xx' 'nvidia-340xx-dkms' 'mhwd-nvidia-340xx')
+pkgver=340.108
+pkgrel=7
+arch=('x86_64')
+url="https://www.nvidia.com/"
+license=('custom')
+options=('!strip')
+makedepends=('mpatch-git' 'nvidia-driver-assistant')
+_pkg="NVIDIA-Linux-x86_64-${pkgver}-no-compat32"
+
+# =============================================================================
+# MPATCH KONFIGURÁCIÓ – ITT ÁLLÍTS, ITT DEBUGOLJ
+# =============================================================================
+#
+# Az AKTÍV opciók. A kommentelt sorok alternatívák – csak a # jelet kell
+# levenni / visszatenni. A sorrend nem számít.
+#
+_mpatch_opts=(
+    --atomic                # minden-vagy-semmi (build-hez kötelező)
+#    --fuzz-factor 0.7       # default hasonlósági küszöb
+    # --fuzz-factor 0.9     # szigorúbb: kevesebb eltűrés, több bukás
+#    --fuzz-factor 0.3     # lazább: csak debug célra!
+    # --fuzz-factor 0.0     # fuzzy kikapcsolva (egzakt + trailing-ws match)
+    # --dry-run             # ne írjon, csak mutassa mit tenne
+    # -v                    # info szint (siker esetén is ír valamit)
+    # -vvvv                 # debug riport hiba esetén (a prepare() auto hívja)
+    # -R                    # patch megfordítása (reverse-engineer)
+    # -c                    # vágólapról olvas (build-hez nem kell)
+    # -                     # stdin-ről olvas (build-hez nem kell)
+)
+
+# Debug célú extra opciók, amiket a prepare() automatikusan fűz a
+# hibás patchek újrafuttatásához. Ne módosítsd, hacsak nem tudod mit teszel.
+_mpatch_debug_opts=(
+    -vvvv
+    --dry-run
+)
+
+# Ha 1-re állítod, a prepare() az ELSŐ hibás patchnél megáll, és
+# részletes debug-riportot generál a ${srcdir}/mpatch-debug/-be.
+# Ha 0-ra, akkor csak a hibát írja ki, debug nélkül.
+_mpatch_debug_on_failure=1
+
+# ---- Debian patch lista (a series.resolved-ból, sorrend kötelező) ----
+_debian_patches=(
+    'bashisms.patch'
+    '0001-backport-error-on-unknown-conftests.patch'
+    '0002-backport-error-on-unknown-conftests-uvm-part.patch'
+    'unregister_procfs_on_failure.patch'
+    'kmem_cache_create_usercopy.patch'
+    'buildfix_kernel_4.11.patch'
+    'buildfix_kernel_5.2.patch'
+    '03-unfuck-for-5.5.x.patch'
+    '0008-backport-drm_available-changes-from-361.16.patch'
+    '0009-backport-drm_driver_has_legacy_dev_list-changes-from.patch'
+    '0010-backport-drm_gem_object_get-changes-from-418.30.patch'
+    '0011-backport-nv_ioremap_nocache-changes-from-440.64.patch'
+    '0012-backport-nv_proc_ops_t-changes-from-440.82.patch'
+    '0013-backport-nv_timeval-changes-from-440.82.patch'
+    '0014-backport-nv_proc_ops_t-nv_timeval-changes-from-440.8.patch'
+    '0015-drm_legacy_pci_init-was-moved-to-drm-drm_legacy.h.patch'
+    '0016-backport-asm-pgtable_types.h-changes-from-390.138.patch'
+    '0017-backport-linux-ioctl32.h-changes-from-450.51.patch'
+    '0018-backport-nv_vmalloc-changes-from-450.57.patch'
+    '0019-work-around-mmap_-sem-lock-rename.patch'
+    '0020-work-around-mmap_-sem-lock-rename-uvm-part.patch'
+    '0021-backport-get_user_pages_remote-changes-from-455.23.0.patch'
+    '0022-backport-vga_tryget-changes-from-455.23.04.patch'
+    '0023-backport-drm_driver_has_gem_free_object-changes-from.patch'
+    '0024-backport-drm_prime_pages_to_sg_has_drm_device_arg-ch.patch'
+    '0025-check-for-drm_pci_init.patch'
+    '0026-import-drm_legacy_pci_init-exit-from-src-linux-5.9.1.patch'
+    '0027-add-static-and-nv_-prefix-to-copied-drm-legacy-bits.patch'
+    '0028-backport-asm-kmap_types.h-changes-from-460.32.03.patch'
+    '0029-backport-drm_driver_has_gem_prime_callbacks-changes-.patch'
+    '0030-skip-list-operations-if-drm_device.legacy_dev_list-i.patch'
+    '0031-backport-set_current_state-changes-from-470.63.01.patch'
+    '0032-backport-drm_device_has_pdev-changes-from-470.63.01.patch'
+    '0033-check-for-member-agp-in-struct-drm_device.patch'
+    '0034-backport-stdarg.h-changes-from-470.82.00.patch'
+    '0035-backport-pde_data-changes-from-470.103.01.patch'
+    '0036-backport-pci-dma-changes-from-470.129.06.patch'
+    '0037-backport-acpi_bus_get_device-changes-from-470.129.06.patch'
+    '0038-backport-acpi-changes-from-390.157.patch'
+    '0039-backport-acpi_op_remove-changes-from-470.182.03.patch'
+    '0040-backport-vm_area_struct_has_const_vm_flags-changes-f.patch'
+    '0041-backport-get_user_pages-changes-from-418.30.patch'
+    '0042-backport-get_user_pages-changes-from-520.56.06.patch'
+    '0043-backport-get_user_pages-changes-from-525.53.patch'
+    '0044-backport-get_user_pages-changes-from-535.86.05.patch'
+    '0045-backport-asm-page.h-changes-from-470.223.02.patch'
+    '0046-backport-drm_gem_prime_handle_to_fd-changes-from-470.patch'
+    '0047-refuse-to-load-legacy-module-if-IBT-is-enabled.patch'
+    '0048-backport-nv_get_kern_phys_address-changes-from-555.4.patch'
+    '0051-build-without-Wsign-compare.patch'
+    '0052-backport-cmd_symlink-changes-from-550.142.patch'
+    '0053-fix-more-warnings.patch'
+    '0054-fix-more-uvm-warnings.patch'
+    '0060-backport-build_cflags-changes-from-525.85.05.patch'
+    '0063-backport-conftest.sh-comment-changes-from-515.48.07.patch'
+    '0063-backport-conftest.sh-comment-changes-from-525.53.patch'
+    '0063-backport-conftest.sh-comment-changes-from-545.23.06.patch'
+    '0064-backport-drm_driver_has_date-from-570.124.04.patch'
+    '0065-backport-ccflags-y-changes-from-570.153.02.patch'
+    '0066-backport-nv_timer_delete_sync-changes-from-570.153.0.patch'
+    '0071-backport-nv_vma_start_write-changes-from-570.169.patch'
+    '0072-disable-objtool-usage.patch'
+    '0075-backport-drm_print.h-changes-from-570.211.01.patch'
+    '0076-backport-nv_in_hardirq-changes-from-580.119.02.patch'
+    '0077-backport-vma_flags_set_word-changes-from-580.126.09.patch'
+    '0078-backport-vma_flags_set_word-changes-from-580.126.09-.patch'
+    'separate-makefile-kbuild.patch'
+    'KERNEL_UNAME.patch'
+    'use-kbuild-compiler.patch'
+    'use-kbuild-flags.patch'
+    'build-sanity-checks.patch'
+    'conftest-verbose.patch'
+    'conftest-via-kbuild.patch'
+    'not-silent.patch'
+    'disable-cc_version_check.patch'
+    'use-nv-kernel-ARCH.o_binary.patch'
+    'avoid-ld.gold.patch'
+    'conftest-include-guard.patch'
+    'ignore_xen_on_arm.patch'
+    'arm-outer-sync.patch'
+    'armhf-on-arm64-kernel.patch'
+    'kernel-7.0-screen_info.patch'
+    'vma-lock-7.0-plus.patch'
+    'kernel-7.3-acpi.patch'
+    'cve-2022-34670-nv-h-IS-OFFSET.patch'
+    'cve-2022-34674-vma-size.patch'
+    'cve-2022-34670-nv-c-usage-count-overflow.patch'
+    'fixup-warnings.patch'
+    '340-taskqueue-tracking.patch'
+    '340-procfs-next-compat.patch'
+    '340-msr-rdmsrq-compat.patch'
+)
+
+source=("https://us.download.nvidia.com/XFree86/Linux-x86_64/${pkgver}/${_pkg}.run"
+        'nvidia-340xx-utils.install'
+        'nvidia-utils.sysusers'
+        'nvidia-340xx.rules'
+        'series.resolved'
+        '20-nvidia.conf'
+        'nvidia-340xx-utils.conf'
+        'nvidia-340xx-utils-modules-load.conf'
+        "${_debian_patches[@]}"
+)
+
+# Hash-ek: mind SKIP (9 fix fájl + 89 Debian patch = 98 db), hogy a gyakran
+# frissülő Debian patchek és helper fájlok ne okozzanak felesleges build-hibát.
+sha256sums=('995d44fef587ff5284497a47a95d71adbee0c13020d615e940ac928f180f5b77'
+            '327469a3803bd08c79c6295c94c050b3112e821c20dff2d36991474b90c24ff1'
+            'd8d1caa5d72c71c6430c2a0d9ce1a674787e9272ccce28b9d5898ca24e60a167'
+            '0e54249a7754b668b436f0f7aa7e95fff68edbb12a93dbee4660e09a8c695f84'
+            '0c51db5233dbce9d14593d9b676c956fbf145cfaaff782e91c31af9f178decbb'
+            '89c45a114a3420afc0de53a3d7e4182fe317f16e9a7e559c144c5e69d16e246e'
+            'cb3980feb97f8952b1b2c67009958e31ca412487b9a6cbfc5bacaf8d562c5034'
+            '942bb852968290c7e6dfc6b79c3fea8af19429a30c9bad4d433b890b13e0dd7d'
+            '53db3bbf450dbacc6257194002535c5f8a6e6359d4c4fde5ec29603b2e085eb5'
+            '36b5094922db3c925aa370ecc6fbd2d36980ff7147f64fadf81ac401503f5f1d'
+            '387dfddbb41404dd4c4319ed3a2b757a97b12d594a6d01d7f20ab6329d0b5065'
+            'c981dc01af43d9849d332596fb2cf20725c25d52843309348967d6a691b84318'
+            '5e5280a5425e6f93efdacb2c51757799caf3ee62a5539de0dbaa79858f5171ac'
+            'c7ed049ff0e594c8a7624474a34e8126ba60e36f1276a6c86c108b993d798350'
+            'e40155ff823709d4d1914126a30bb0c900a5bb4d06cdc4e493da19d51325a8f2'
+            'a052691c7546a1c8a2560a4008c4299ed5a61aab13d665b0502c6e8c0ab43c4e'
+            '05d24dfd238cec1fd56dd48c974dedba61ea799196c732ad79a149e8981c5e4d'
+            '32c03d606e6fab66d793f14b0079738e4e0e49a15da9202c5c36cf5dd09f209f'
+            '97eff24adfbe52e84cd4654166055e6428730ed1c7fc92f23464b804d704e9d2'
+            '86046d3172db427393f7ce239156d81cf200c9538d7216a8417d65347d8b1df0'
+            '38072af5bf86a5eb02c6442708d44ea9a1c08cd54f3aaad7c3c8ae1d305bdfd7'
+            'a666526244461d7aa1d70e848e9a48abfeafb7a4276815e009d4526004357b7d'
+            '1f7896050b2ccf626d274f512485e054cbdea2069e1915e68c3d65922e560a2c'
+            'f3aa16f33ec5dbc06cc4cfd4a7061f34b72eaefb9371de5c5262b8f5fc6c696a'
+            '8a41ca402f1f63091068fa30b9d6bc94b409b8301371e0d15e7d919eac76c508'
+            '6f750552b854712a010e80e4e7a13a3fcc3a6eee0936a5fb033a6e608ca18b64'
+            '6cddbf41336ec3623765751c9c55de293c097ec7bc4d3ade8e8212ba839a0489'
+            'ff56050a3af591e87544641d362db32697274fcc273e119de1c588552528c5e0'
+            '4754535a6972e1ab517834b374c6ce0cee884d69e5dc7e7d343d282660947867'
+            'e6214b451bbda0aceec67eba014007b03a17743c58673988ec3cbf65637fc066'
+            '3f3fbdddc245f27d21cef11501a9a24f211375f5b239f2c62c4f986584a8ae48'
+            'ef8e0cc932aa1ee54ab6cf4d3658487cc633393e762a890427e1b871fafbefae'
+            '881a9e649e9d74fe9ea3d62aa465c007bb4ced23f7bf06e1b29551fc2ee9345d'
+            '8d175bab568463e2e75aaeddbbc01a8b556cf1731cffe24355b2334193bce8ec'
+            '2d26f6c3f3ba3b8ef7cb768e50c775aef33c082a38d4a1a230aa1a4205ea5984'
+            '397dcfa0c9ff9339916204d59c3441da7177cc47a9037e6168c4829324391025'
+            '374838fc5197c0bbb1c448a5965dc106b182d970c329568a9d1c9b220e6efcb6'
+            'ed16aacb499493d53b1f62d995cf6a25aef21bb0ee451188ae08fc595f9f2383'
+            'e4fa7e850a76811212b0044bd899d69a8f8471f16887bb7c4cac502bd0572872'
+            'de1aa4e6d3c387d3c5f20ee9ace2ea8ca15d8fdf50bf33d7e664f73f504ecce7'
+            '3c162f7bfd38f8e772703b6eaf975eb969c1df4b3ce5147e762914ca9eef9356'
+            'df6e105030db178fd2e68d76bcba74edff92fb92fb3c0e695d46afaffda3a6bb'
+            '1dcee21fa0391f735e176aa268ade7942d5474878098ee1ade81f62fef3d2c37'
+            '72aba65dbdd7309d9139da4f74a727cf078dc4aeba9bbe05e8fa98638dc83bce'
+            '89461e5dc40205e520653845d7a06e4acf86ac2fdb2bd2361f0694bfe90f3c18'
+            '326593b6f853a7b201fa39afa020d476d34adda99d89e5a01c3813da93d91d60'
+            '2049d9104fb5e9165b56634d81f9dbf9e6ba0829d793abd75879d092fb79ddf2'
+            '14da3aa5a8d87f0bc763ad94da8506413894863e5519974634d16d86b995c47a'
+            'a89d1f02c5d6f153fc1bf5f9a6e361ec7740a745135df2f6dbad8ebd03eb233c'
+            'b51abc1699ed55b2d98fcf98797f2d02601b417053b33cba4cc366b6b969b399'
+            'ca2d1860af489791a40db17aff996ee77c193ba76894ff5b6a9604321ef976d9'
+            '15f27a296bedda4e029a445941e766f3eee1119f2e6975234885b627d730743d'
+            'ae4e805d42a228cf371a5d06ff32226d4bde5da78d8502d6331739a851ecde40'
+            '62711c3208d4a9f88579ef340421722f1e184ef6c691ef50914fead1a5ffd41d'
+            '72e9e7dfce14b0c3a356e80f622aeef9a7a07dfd8d839c58975b2aa377826c8e'
+            'fa165f694ce8eb33ba2ed516228aba3568910d2e3183dbb6664103bd122e075e'
+            'f2cd6b6f0e31320b73f8dea32df57b3001a0cadb0447b650677436ab6694d5fb'
+            '0de4fdc8864e61488be6837ed9801b9fbbb05136a2e0213fdcfc9815f1d3e463'
+            'ff8275c06f5e04ed094bef34ed8ce85d547c96294b3187bc9a7308faa339626d'
+            '58f83d92a0bf65c281b4d413427534f98b4e43005d1cfc07c1a4ca508eab43ec'
+            'f7b0b68e99fdb125c124f1deb0695804e0652aad180c18b1e75cc71b51d39bd7'
+            'd6ae0267f125927ec3fce2a7a749ec2c0c9d17ef0946a085912e9df9695c4f2c'
+            'd66a8914e8d2ec500b748321c2d76bc5387dde9a89f8047fab3ce0371d1488aa'
+            '4213eeb3bd0319d8ddb3d854ef0d4e973a7d826684b60cc57660e229cb9cbb6b'
+            '7a2208146ad8c434724c490f782fc1737b0efcd0d01807b05da24eeed0f2606c'
+            'e50b2d02b6955ba6dac57d48e239eb520deb00aaf03962813f61f5945a3950dd'
+            'a2fd203800d2cac8374c2a522b58fc78174c99af1b6ecff73973085800586d33'
+            'a9c4ee59cb27929d56b6b07b6440b5f31a7e7b5ef5447ae438f44065a13ad205'
+            '95d06b6420db0935839627a9f4f1d092e6fa02ade0016945ae88484d088f2a7b'
+            '53b37c1101dd9be2d126fd246af262a5305bd450257d22095e7c0baa469af03a'
+            '2b889de6c89511cd7639c95a94a51c517eca0fddce152cc467b16a5ab8d73d43'
+            '6fba0317d66c41052c41d2d9af7d85a88ae04fc323e84c34a44bcc4e1311489a'
+            '47e822a296c449f0dc5e2e8d20709682c2c91a84f388d67d14dd5a5d5250e7a3'
+            'aa93d5b4d3fbf625be9760655d5fd437b526ecbefbb5a95200dca7f0cd621fc9'
+            'd8f962fa0df9073f59bf4e090cb1ca01a2a6dcb99b6b4e9fdd52d71508551101'
+            'eed94bb582fcdbb00a7d8fd9cc10824e6b75c6ba4650d70c97ab5252669876d9'
+            'a01750010af1aa81dd4e9cb765bc805b60283cf19014bf90325deb776d4c9e54'
+            '1e3e683bf1fb2009e9b1f1b453554575f2a77fb88f0595f66a4d3568817c5909'
+            '37fb53681c82181059d3e8ae7a7940a3f0963ca0809f073670d0b8edcf212b10'
+            '89ead0ee685666c40c3e8a027fbc11bde145a28271b73d8ca8aa81b2a2859cc4'
+            'a5f7c23c16cb1cb2c07c5f4652b1ba8679ca9470c978e235e41a4b239de49d94'
+            'f97b0362393aa1265309e4d618040f8fe2a706f55dfaa5adc3e381c3fb40ce8c'
+            'a2c32ee9194d3bcf2eb6f734d93bbabe14d47a55d999135cd118383280aca307'
+            '57e94e83f16605c8301fdbde6834d3d0bcd95104fb11223067c025d59c951d9a'
+            '80e49700c9bed6b8172819e05f25bb7afe0cd9388c9ae908b24db6c9b83a16bf'
+            '9af8b70497acf6c2ecd18bcdf62674f2e83e15a499eaa7d03d571ed754b26117'
+            '7026a7bf9221096af816f70cd6ddd9eadf2740429018d1d1db395fc85d1daf54'
+            '68876071bc948fddeb668f4561ab26943d04e00205c7385e0e9a15f4853c22e1'
+            '5e8cde32a6670e065686988b5b1491c04e20daff1207157ef152fee06488c76d'
+            'ed2cb4c840b33a0bcfeecc8837f5fdb23af34e16746b8a76bc9c62d0edd950fe'
+            '85deab49547c1e07475e90393659787b78e7118990b4af00058b0581affc4a9c'
+            '6e16b6cd77f9319b18adb7117bfb56dfd58176d0dc7bac560529794c89ebef58'
+            'de1b745cc919c9f6c60c73f453523885f24fd111a976262dde41537e7d8c69ba'
+            '5522b5f3c5469a0fae8087b80e03b88e77deb0383e8e7cf5a1c0646ac3898da8'
+            '6775ad7a49e8d9c7a36548cc4ede551f0c6b07bb5f74133a6fbe28b849114a56'
+            '0ce6dd386a9fc1e8393b3f97c7b17cb9d1aab824ae7026d936738c3dae255fa3'
+            '32fb44c7badd08efa2f1fb7de40ac0561da5d7cf9976098a4c7f095a21f0e3a9'
+            'ee60e3d664c317045da6c509ee500674df1c126977ec87526bd30c2c919b4546'
+            '85de626e0e007b00bff41d14ac71d46c5f7652e4e960b1317cfe8c985858a50b')
+
+# =============================================================================
+# SYMLINK GENERÁTOR – a .so SONAME-ekhez szükséges linkek létrehozása.
+# Ezt a prepare() után minden package_* függvény meghívja.
+# =============================================================================
+create_links() {
+    find "$pkgdir" -type f -name '*.so*' ! -path '*xorg/*' -print0 | while read -d $'\0' _lib; do
+        _soname=$(dirname "${_lib}")/$(readelf -d "${_lib}" | grep -Po 'SONAME.*: \[\K[^]]*' || true)
+        _base=$(echo ${_soname} | sed -r 's/(.*)\.so.*/\1.so/')
+        [[ -e "${_soname}" ]] || ln -s $(basename "${_lib}") "${_soname}"
+        [[ -e "${_base}" ]] || ln -s $(basename "${_soname}") "${_base}"
+    done
+}
+
+# =============================================================================
+# SEGÉDFÜGGVÉNYEK – mpatch wrapperek
+# =============================================================================
+
+# Az összes opció egy stringgé fűzése – így a prepare() tisztán hívhatja.
+_mpatch_cmd() {
+    printf '%s ' mpatch "${_mpatch_opts[@]}"
+}
+
+# Egy patch alkalmazása. Ha elhasal ÉS _mpatch_debug_on_failure=1,
+# akkor automatikusan -vvvv --dry-run-nal újrafuttatja, és a debug
+# riportot a ${srcdir}/mpatch-debug/-be másolja.
+_mpatch_apply() {
+    local _patchfile="$1"
+    local _targetdir="$2"
+    local _patchname
+    _patchname=$(basename "$_patchfile")
+
+    # 1. Alkalmazás – a VALÓDI exit kódot elmentjük, mielőtt bármi felülírná.
+    mpatch "${_mpatch_opts[@]}" "$_patchfile" "$_targetdir"
+    local _rc=$?
+
+    # 2. Siker → korai visszatérés, debug nem kell.
+    if [ "$_rc" -eq 0 ]; then
+        return 0
+    fi
+
+    # 3. Bukás → hibaüzenet, majd debug riport (ha be van kapcsolva).
+    echo "!!! mpatch FAILED (rc=$_rc): $_patchname" >&2
+
+    if [ "${_mpatch_debug_on_failure}" = "1" ]; then
+        local _dbgdir="${srcdir}/mpatch-debug"
+        mkdir -p "$_dbgdir"
+        echo ">>> Debug riport generálása: $_dbgdir/" >&2
+        ( cd "$_targetdir" && mpatch "${_mpatch_debug_opts[@]}" \
+            "$_patchfile" . ) > "$_dbgdir/${_patchname}.stdout" 2>&1 || true
+        find "${_targetdir}" -maxdepth 1 -name 'mpatch-debug-report-*.md' \
+            -exec mv {} "$_dbgdir/${_patchname}.report.md" \; 2>/dev/null || true
+        echo ">>> Nézd meg: $_dbgdir/${_patchname}.report.md" >&2
+        echo ">>> Ha elakadtál: olvasd el a PKGBUILD fejlécében a" >&2
+        echo ">>> 'DEBUG WORKFLOW – HA EGY PATCH ELHASAL' részt." >&2
+    fi
+
+    # 4. A VALÓDI hibakóddal térünk vissza → a hívó `|| exit 1` lefut.
+    return "$_rc"
+}
+
+prepare() {
+    rm -rf "${_pkg}"
+    sh "${_pkg}.run" --extract-only
+
+    cd "${_pkg}"
+
+    cd kernel
+
+    # -----------------------------------------------------------------------
+    # 1. Debian patch-sorozat alkalmazása mpatch-csel (series.resolved sorrend)
+    # -----------------------------------------------------------------------
+    echo ">>> Debian patch-sorozat alkalmazása mpatch-csel (kernel/ könyvtárban)..."
+    echo ">>> Opciók: ${_mpatch_opts[*]}"
+
+    if [ ! -f "${srcdir}/series.resolved" ]; then
+        echo "!!! HIBA: hiányzik a series.resolved a PKGBUILD mellől"
+        exit 1
+    fi
+
+    local _n=0
+    local _total
+    _total=$(grep -cve '^[[:space:]]*$' "${srcdir}/series.resolved")
+
+    while IFS= read -r _patch || [ -n "$_patch" ]; do
+        _patch="${_patch%$'\r'}"
+        [ -z "${_patch//[[:space:]]/}" ] && continue
+        _n=$((_n + 1))
+        _patchfile="${srcdir}/${_patch}"
+
+        if [ ! -f "$_patchfile" ]; then
+            echo "!!! HIBA: hiányzó patch: $_patchfile"
+            exit 1
+        fi
+
+        printf '[%3d/%d] %s\n' "$_n" "$_total" "$_patch"
+        _mpatch_apply "$_patchfile" . \
+            || { echo "!!! PATCH FAILED: $_patch"; exit 1; }
+    done < "${srcdir}/series.resolved"
+
+    echo ">>> Mind a $_n patch sikeresen alkalmazva (mpatch)."
+
+    # -----------------------------------------------------------------------
+    # 2. UVM conftest.sh lecserélése a patchelt fő conftest.sh másolatára.
+    #
+    # Az UVM saját, 2019-es conftest.sh-ja nem ismeri fel a modern kernel
+    # API-kat (kmem_cache_create 5 argumentummal, kuid_t, task_struct.euid).
+    # A Debian symlinket használ, de a DKMS belső másolásai miatt a symlink
+    # nem érvényesül megbízhatóan. Ezért TÉNYLEGES MÁSOLATOT készítünk,
+    # a patchek UTÁN, hogy a másolat már a patchelt tartalmat kapja.
+    # -----------------------------------------------------------------------
+    if [ -e uvm/conftest.sh ] && [ ! -L uvm/conftest.sh ]; then
+        rm -f uvm/conftest.sh
+    fi
+    cp -f conftest.sh uvm/conftest.sh
+
+    echo ">>> uvm/conftest.sh lecserélve a patchelt fő conftest.sh másolatára."
+    echo ">>> 'NV_CONFTEST_H_' előfordulások száma:"
+    echo "    $(grep -c 'NV_CONFTEST_H_' uvm/conftest.sh || echo 0)"
+
+    # -----------------------------------------------------------------------
+    # 3. Debian build-stamp blob-előkészítés.
+    #
+    # A Debian build-stamp a következőt csinálja:
+    #     $(RM) build/kernel/nv-kernel.o
+    #     cp -al NVIDIA-Linux-$a/kernel/nv-kernel.o \
+    #              build/kernel/nv-kernel-$a.o_binary
+    #
+    # Vagyis az eredeti nv-kernel.o-t ELTÁVOLÍTJA, és csak az
+    # arch-specifikus .o_binary marad. Ez azért kritikus, mert a
+    # use-nv-kernel-ARCH.o_binary.patch az alábbi szabályt hozza létre:
+    #
+    #     $(obj)/$(CORE_OBJS): $(src)/$(CORE_OBJS-y)_binary
+    #             $(call if_changed,symlink)
+    #
+    # Az if_changed csak akkor futtatja a receptet (és írja a
+    # .nv-kernel.o.cmd-t), ha a cél NEM létezik, VAGY a prerequisite
+    # újabb, VAGY a parancs eltér, VAGY FORCE van a prerequisite-ek
+    # között. Ha a target (nv-kernel.o) már létezik és nem elavult,
+    # a recept kimarad, és a .cmd fájl nem jön létre. A modpost
+    # fázisban ez a következőt okozza:
+    #     .nv-kernel.o.cmd: No such file or directory
+    #     make[2]: *** [scripts/Makefile.modpost:127: .../Module.symvers] Error 1
+    #
+    # Ezért a Debian mintájára az eredeti nv-kernel.o-t ELTÁVOLÍTJUK
+    # (mv-vel átnevezzük), így a DKMS build során a target hiányzik,
+    # és a recept garantáltan lefut.
+    # -----------------------------------------------------------------------
+    if [ ! -f nv-kernel.o ]; then
+        echo "!!! HIBA: hiányzik kernel/nv-kernel.o"
+        exit 1
+    fi
+    mv -f nv-kernel.o nv-kernel-amd64.o_binary
+    echo ">>> nv-kernel.o → nv-kernel-amd64.o_binary (átnevezve, Debian build-stamp szerint)"
+
+    # -----------------------------------------------------------------------
+    # 4. DKMS workaround: KERNELRELEASE semlegesítése a top-level make híváskor.
+    #
+    # A DKMS 3.x a top-level make híváskor beállítja a KERNELRELEASE-t:
+    #   make -j2 KERNELRELEASE=6.x.y module KERNEL_UNAME=6.x.y
+    #
+    # A Debian patchelt nvidia-modules-common.mk a build logikát a
+    # KERNELRELEASE alapján kettéválasztja. Ha M nincs beállítva (DKMS
+    # top-level hívás), ürítjük a KERNELRELEASE-t, így a Makefile-szekció
+    # (module, nvidia.ko, BUILD_MODULE_RULE) aktiválódik. A Kbuild belső
+    # hívásakor M be van állítva, ott minden marad.
+    # -----------------------------------------------------------------------
+    {
+        cat <<'EOF_HEADER'
+# --- DKMS workaround: KERNELRELEASE semlegesítése a top-level híváskor ---
+ifeq ($(M),)
+  override KERNELRELEASE :=
+endif
+# --- end DKMS workaround ---
+EOF_HEADER
+        cat Makefile
+    } > Makefile.new
+    mv Makefile.new Makefile
+
+    echo ">>> DKMS workaround hozzáadva a kernel/Makefile tetejére."
+
+    # -----------------------------------------------------------------------
+    # 5. DKMS dkms.conf előkészítése
+    # -----------------------------------------------------------------------
+    if ! grep -q "nvidia-uvm" dkms.conf; then
+        cat uvm/dkms.conf.fragment >> dkms.conf
+    fi
+    sed -i "s/__JOBS/`nproc`/" dkms.conf
+    sed -i -E 's/^([[:space:]]*)CLEAN/\1clean/' dkms.conf
+    # PREEMPT_RT flag beégetése a DKMS make hívásaiba, hogy RT kernelen
+# a DKMS automatikus újraépítés is átmenjen (nem csak a prebuilt csomag).
+    sed -i 's|^MAKE\[0\]="make |MAKE\[0\]="IGNORE_PREEMPT_RT_PRESENCE=1 make |' dkms.conf
+    sed -i 's|; make -C uvm |; IGNORE_PREEMPT_RT_PRESENCE=1 make -C uvm |' dkms.conf
+    cd ..
+}
+
+package_opencl-nvidia-340xx() {
+    pkgdesc="OpenCL implemention for NVIDIA"
+    depends=('zlib')
+    optdepends=('opencl-headers: headers necessary for OpenCL development')
+    provides=("opencl-nvidia=${pkgver}" 'opencl-driver')
+    conflicts=('opencl-nvidia')
+
+    cd "${_pkg}"
+
+    install -Dm644 nvidia.icd "${pkgdir}/etc/OpenCL/vendors/nvidia.icd"
+    install -Dm755 "libnvidia-compiler.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-compiler.so.${pkgver}"
+    install -Dm755 "libnvidia-opencl.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-opencl.so.${pkgver}"
+
+    create_links
+
+    mkdir -p "${pkgdir}/usr/share/licenses"
+    ln -s nvidia "${pkgdir}/usr/share/licenses/opencl-nvidia"
+}
+
+package_nvidia-340xx-dkms() {
+    pkgdesc="NVIDIA driver sources for linux, 340xx legacy branch"
+    depends=('dkms' "nvidia-340xx-utils=${pkgver}")
+    provides=('NVIDIA-MODULE' "nvidia-dkms=${pkgver}")
+    conflicts=('nvidia-dkms')
+
+    cd "${_pkg}"
+
+    install -dm 755 "${pkgdir}"/usr/src
+    cp -dr --no-preserve='ownership' kernel "${pkgdir}/usr/src/nvidia-${pkgver}"
+
+    install -Dt "${pkgdir}/usr/share/licenses/${pkgname}" -m644 "${srcdir}/${_pkg}/LICENSE"
+}
+
+package_nvidia-340xx-utils() {
+    pkgdesc="NVIDIA drivers utilities"
+    depends=('xorg-server' 'mesa' 'mhwd')
+    optdepends=('nvidia-340xx-settings: configuration tool'
+                'xorg-server-devel: nvidia-xconfig'
+                'opencl-nvidia-340xx: OpenCL support')
+    conflicts=('nvidia-utils' 'nvidia-304xx-utils' 'nvidia-340xx-libgl')
+    provides=('opengl-driver' 'nvidia-libgl' "nvidia-utils=${pkgver}" 'nvidia-340xx-libgl')
+    replaces=('nvidia-340xx-libgl')
+    install="${pkgname}.install"
+
+    cd "${_pkg}"
+
+    install -Dm755 nvidia_drv.so "${pkgdir}/usr/lib/xorg/modules/drivers/nvidia_drv.so"
+
+    install -Dm755 "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.${pkgver}"
+    ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so.1"
+    ln -s "libglx.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/xorg/libglx.so"
+
+    install -Dm755 "libGL.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/libGL.so.${pkgver}"
+    install -Dm755 "libEGL.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/libEGL.so.${pkgver}"
+    install -Dm755 "libGLESv1_CM.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/libGLESv1_CM.so.${pkgver}"
+    install -Dm755 "libGLESv2.so.${pkgver}" "${pkgdir}/usr/lib/nvidia/libGLESv2.so.${pkgver}"
+
+    install -Dm755 "libnvidia-glcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glcore.so.${pkgver}"
+    install -Dm755 "libnvidia-eglcore.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-eglcore.so.${pkgver}"
+    install -Dm755 "libnvidia-glsi.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-glsi.so.${pkgver}"
+
+    install -Dm755 "libnvidia-ifr.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ifr.so.${pkgver}"
+    install -Dm755 "libnvidia-fbc.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-fbc.so.${pkgver}"
+    install -Dm755 "libnvidia-encode.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-encode.so.${pkgver}"
+    install -Dm755 "libnvidia-cfg.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-cfg.so.${pkgver}"
+    install -Dm755 "libnvidia-ml.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-ml.so.${pkgver}"
+
+    install -Dm755 "libvdpau_nvidia.so.${pkgver}" "${pkgdir}/usr/lib/vdpau/libvdpau_nvidia.so.${pkgver}"
+
+    install -Dm755 "tls/libnvidia-tls.so.${pkgver}" "${pkgdir}/usr/lib/libnvidia-tls.so.${pkgver}"
+
+    install -Dm755 "libcuda.so.${pkgver}" "${pkgdir}/usr/lib/libcuda.so.${pkgver}"
+    install -Dm755 "libnvcuvid.so.${pkgver}" "${pkgdir}/usr/lib/libnvcuvid.so.${pkgver}"
+
+    install -Dm755 nvidia-debugdump "${pkgdir}/usr/bin/nvidia-debugdump"
+
+    install -Dm755 nvidia-xconfig "${pkgdir}/usr/bin/nvidia-xconfig"
+    install -Dm644 nvidia-xconfig.1.gz "${pkgdir}/usr/share/man/man1/nvidia-xconfig.1.gz"
+
+    install -Dm444 pci.ids "${pkgdir}/usr/share/nvidia/pci.ids"
+    install -Dm444 monitoring.conf "${pkgdir}/usr/share/nvidia/monitoring.conf"
+
+    install -Dm755 nvidia-bug-report.sh "${pkgdir}/usr/bin/nvidia-bug-report.sh"
+
+    install -Dm755 nvidia-smi "${pkgdir}/usr/bin/nvidia-smi"
+    install -Dm644 nvidia-smi.1.gz "${pkgdir}/usr/share/man/man1/nvidia-smi.1.gz"
+
+    install -Dm755 nvidia-cuda-mps-server "${pkgdir}/usr/bin/nvidia-cuda-mps-server"
+    install -Dm644 nvidia-cuda-mps-control.1.gz "${pkgdir}/usr/share/man/man1/nvidia-cuda-mps-control.1.gz"
+
+    install -Dm4755 nvidia-modprobe "${pkgdir}/usr/bin/nvidia-modprobe"
+
+    install -Dm644 nvidia-application-profiles-${pkgver}-rc "${pkgdir}/usr/share/nvidia/nvidia-application-profiles-${pkgver}-rc"
+    install -Dm644 nvidia-application-profiles-${pkgver}-key-documentation "${pkgdir}/usr/share/nvidia/nvidia-application-profiles-${pkgver}-key-documentation"
+
+    install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/nvidia/LICENSE"
+    ln -s nvidia "${pkgdir}/usr/share/licenses/nvidia-utils"
+    install -Dm644 README.txt "${pkgdir}/usr/share/doc/nvidia/README"
+    install -Dm644 NVIDIA_Changelog "${pkgdir}/usr/share/doc/nvidia/NVIDIA_Changelog"
+    ln -s nvidia "${pkgdir}/usr/share/doc/nvidia-utils"
+
+    install -Dm644 "${srcdir}/20-nvidia.conf" "${pkgdir}/usr/share/X11/xorg.conf.d/20-nvidia-340xx.conf"
+
+    install -Dm644 "${srcdir}/nvidia-340xx.rules" "${pkgdir}/usr/lib/udev/rules.d/60-nvidia-340xx.rules"
+    install -Dm644 "${srcdir}/nvidia-utils.sysusers" "${pkgdir}/usr/lib/sysusers.d/nvidia-340xx-utils.conf"
+
+    # -----------------------------------------------------------------------
+    # modprobe.d: blacklist + softdep (fájlból, echo nélkül)
+    # -----------------------------------------------------------------------
+    install -Dm644 "${srcdir}/nvidia-340xx-utils.conf" \
+        "${pkgdir}/usr/lib/modprobe.d/${pkgname}.conf"
+
+    # -----------------------------------------------------------------------
+    # modules-load.d: nvidia-uvm (fájlból, echo nélkül)
+    # -----------------------------------------------------------------------
+    install -Dm644 "${srcdir}/nvidia-340xx-utils-modules-load.conf" \
+        "${pkgdir}/usr/lib/modules-load.d/${pkgname}.conf"
+
+    create_links
+
+    install -dm 755 "${pkgdir}"/etc/ld.so.conf.d
+    echo -e '/usr/lib/nvidia/' > "${pkgdir}"/etc/ld.so.conf.d/00-nvidia.conf
+}
+
+package_mhwd-nvidia-340xx() {
+    pkgdesc="MHWD module-ids for nvidia ${pkgver}"
+    arch=('any')
+    depends=('mhwd')
+
+    install -d -m755 "${pkgdir}/var/lib/mhwd/ids/pci/"
+
+    # Generate the MHWD ID list from the NVIDIA supportedchips data shipped
+    # with nvidia-driver-assistant. Only the 4-digit PCI Device IDs are written;
+    # Subsystem Vendor IDs and Subsystem Device IDs are intentionally ignored.
+    nvidia-driver-assistant --generate-ids 340 \
+        > "${pkgdir}/var/lib/mhwd/ids/pci/nvidia-340xx.ids"
+}
+#}
+#deprecated mhwd-nvidia stays just for info
+#package_mhwd-nvidia-340xx() {
+#    pkgdesc="MHWD module-ids for nvidia ${pkgver}"
+#    arch=('any')
+#    depends=('mhwd')
+#
+#    install -d -m755 "${pkgdir}/var/lib/mhwd/ids/pci/"
+#
+    # A Debian build-stamp mintájára az eredeti nv-kernel.o-t a prepare()
+    # átnevezte nv-kernel-amd64.o_binary-re. A blob tartalma azonos, így
+    # az mhwd-nvidia script ugyanúgy ki tudja olvasni belőle a támogatott
+    # PCI ID-kat.
+#    sh -e ${srcdir}/mhwd-nvidia \
+#        ${srcdir}/${_pkg}/README.txt \
+#        ${srcdir}/${_pkg}/kernel/nv-kernel-amd64.o_binary \
+#        > ${pkgdir}/var/lib/mhwd/ids/pci/nvidia-340xx.ids
+#}
