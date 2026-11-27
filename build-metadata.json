@@ -1,0 +1,64 @@
+{
+  "driver_family": "340xx",
+  "source_repository": "megvadulthangya/nvidia-340xx-utils",
+  "source_branch": "develop",
+  "source_sha": "3f7df8524f20a5eec1ee2928b46802477e0a4472",
+  "kernel_repository": "megvadulthangya/nvidia-340xx",
+  "kernel_branch": "develop",
+  "manjaro_branch": "testing",
+  "utils_pkgver": "340.108",
+  "utils_pkgrel": "6",
+  "kernel_matrix": [
+    {
+      "kernel": "linux-next",
+      "variant": "normal",
+      "package": "${_linuxprefix}-nvidia-340xx"
+    },
+    {
+      "kernel": "linux61",
+      "variant": "normal",
+      "package": "${_linuxprefix}-nvidia-340xx"
+    },
+    {
+      "kernel": "linux61-rt",
+      "variant": "rt",
+      "package": "${_linuxprefix}-nvidia-340xx"
+    },
+    {
+      "kernel": "linux612",
+      "variant": "normal",
+      "package": "${_linuxprefix}-nvidia-340xx"
+    },
+    {
+      "kernel": "linux612-rt",
+      "variant": "rt",
+      "package": "${_linuxprefix}-nvidia-340xx"
+    },
+    {
+      "kernel": "linux618",
+      "variant": "normal",
+      "package": "${_linuxprefix}-nvidia-340xx"
+    },
+    {
+      "kernel": "linux66",
+      "variant": "normal",
+      "package": "${_linuxprefix}-nvidia-340xx"
+    },
+    {
+      "kernel": "linux66-rt",
+      "variant": "rt",
+      "package": "${_linuxprefix}-nvidia-340xx"
+    },
+    {
+      "kernel": "linux73",
+      "variant": "normal",
+      "package": "${_linuxprefix}-nvidia-340xx"
+    },
+    {
+      "kernel": "linux74",
+      "variant": "normal",
+      "package": "${_linuxprefix}-nvidia-340xx"
+    }
+  ],
+  "run_started_utc": "2026-11-27T00:46:04.404158+00:00"
+}

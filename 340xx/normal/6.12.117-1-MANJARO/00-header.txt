@@ -1,0 +1,10 @@
+DKMS (dkms-3.4.5) make.log for nvidia/340.108 for kernel 6.12.117-1-MANJARO (x86_64)
+Fri Nov 27 12:53:37 AM UTC 2026
+
+Building module(s)
+# command: IGNORE_PREEMPT_RT_PRESENCE=1 make module KERNEL_UNAME=6.12.117-1-MANJARO; IGNORE_PREEMPT_RT_PRESENCE=1 make -C uvm module KERNEL_UNAME=6.12.117-1-MANJARO KBUILD_EXTMOD=/build/sources/nvidia-340xx/normal-kernels/linux612-nvidia-340xx/src/nvidia/340.108/build/uvm
+NVIDIA: calling KBUILD...
+make NV_MODULE_SUFFIX= KERNEL_SOURCES=/lib/modules/6.12.117-1-MANJARO/build KERNEL_OUTPUT=/lib/modules/6.12.117-1-MANJARO/build KBUILD_VERBOSE=1 -C /lib/modules/6.12.117-1-MANJARO/build M=/build/sources/nvidia-340xx/normal-kernels/linux612-nvidia-340xx/src/nvidia/340.108/build ARCH=x86_64 modules
+make[1]: Entering directory '/usr/lib/modules/6.12.117-1-MANJARO/build'
+make --no-print-directory -C /usr/lib/modules/6.12.117-1-MANJARO/build \
+-f /usr/lib/modules/6.12.117-1-MANJARO/build/Makefile modules
