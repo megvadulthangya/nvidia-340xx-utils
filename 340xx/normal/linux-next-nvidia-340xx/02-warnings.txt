@@ -1,0 +1,2 @@
+       1  warning: '__fbdev_warning' defined but not used [-Wunused-variable]
+       1  warning: 'nv_fbdev_failure_detected' defined but not used [-Wunused-variable]

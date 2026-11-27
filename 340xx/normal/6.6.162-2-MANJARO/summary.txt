@@ -1,0 +1,25 @@
+build:           linux66-nvidia-340xx
+driver:          340xx
+variant:         normal
+kernel:          6.6.162-2-MANJARO
+nvidia version:  340.108
+status:          warnings
+log path:        /build/sources/nvidia-340xx/normal-kernels/linux66-nvidia-340xx/src/nvidia/340.108/6.6.162-2-MANJARO/x86_64/log/make.log
+log size:        171728 bytes
+log lines:       512
+build dir:       /build/sources/nvidia-340xx/normal-kernels/linux66-nvidia-340xx
+raw log:         make.log.zst
+
+errors:          0
+warnings clean:  6  (unique: 3)
+warnings noise:  1  (unique: 1)
+suspicious:      0  (unique: 0)
+modules on disk: 2  [nvidia, nvidia-uvm]
+log LD [M]:      ['nvidia', 'nvidia-uvm']
+log MODPOST:     yes
+log cached:      no
+
+=== Top clean warning groups ===
+       4  warning: Please avoid flushing system-wide workqueues. [-Wattribute-warning]
+       1  warning: overriding recipe for target '<path>'
+       1  warning: ignoring old recipe for target '<path>'

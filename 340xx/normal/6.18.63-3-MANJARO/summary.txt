@@ -1,0 +1,26 @@
+build:           linux618-nvidia-340xx
+driver:          340xx
+variant:         normal
+kernel:          6.18.63-3-MANJARO
+nvidia version:  340.108
+status:          warnings
+log path:        /build/sources/nvidia-340xx/normal-kernels/linux618-nvidia-340xx/src/nvidia/340.108/6.18.63-3-MANJARO/x86_64/log/make.log
+log size:        172457 bytes
+log lines:       545
+build dir:       /build/sources/nvidia-340xx/normal-kernels/linux618-nvidia-340xx
+raw log:         make.log.zst
+
+errors:          0
+warnings clean:  7  (unique: 4)
+warnings noise:  0  (unique: 0)
+suspicious:      0  (unique: 0)
+modules on disk: 2  [nvidia, nvidia-uvm]
+log LD [M]:      ['nvidia', 'nvidia-uvm']
+log MODPOST:     yes
+log cached:      no
+
+=== Top clean warning groups ===
+       4  warning: Please avoid flushing system-wide workqueues. [-Wattribute-warning]
+       1  warning: ignoring return value of 'refcount_sub_and_test' declared with attribute 'warn_unused_result' [-Wunused-result]
+       1  warning: overriding recipe for target 'Module.symvers'
+       1  warning: ignoring old recipe for target 'Module.symvers'

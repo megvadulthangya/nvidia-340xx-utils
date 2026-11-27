@@ -1,0 +1,1 @@
+       1  warning: objtool: <func>+0xADDR: unannotated intra-function call

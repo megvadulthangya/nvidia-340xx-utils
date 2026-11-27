@@ -1,0 +1,23 @@
+build:           linux61-rt-nvidia-340xx
+driver:          340xx
+variant:         rt
+kernel:          6.1.190-2-rt70-MANJARO
+nvidia version:  340.108
+status:          warnings
+log path:        /build/sources/nvidia-340xx/rt-kernels/linux61-rt-nvidia-340xx/src/nvidia/340.108/6.1.190-2-rt70-MANJARO/x86_64/log/make.log
+log size:        155528 bytes
+log lines:       422
+build dir:       /build/sources/nvidia-340xx/rt-kernels/linux61-rt-nvidia-340xx
+raw log:         make.log.zst
+
+errors:          0
+warnings clean:  2  (unique: 2)
+warnings noise:  1  (unique: 1)
+suspicious:      0  (unique: 0)
+modules on disk: 2  [nvidia, nvidia-uvm]
+log MODPOST:     no
+log cached:      no
+
+=== Top clean warning groups ===
+       1  warning: overriding recipe for target '<path>'
+       1  warning: ignoring old recipe for target '<path>'

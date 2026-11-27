@@ -1,0 +1,161 @@
+{
+  "builds": {
+    "340xx/normal/linux-next-nvidia-340xx": {
+      "clean_total": 2,
+      "clean_uniq": 2,
+      "err_count": 12,
+      "noise_total": 0,
+      "status": "failed",
+      "suspicious_total": 3
+    },
+    "340xx/normal/linux61-nvidia-340xx": {
+      "clean_total": 2,
+      "clean_uniq": 2,
+      "err_count": 0,
+      "noise_total": 1,
+      "status": "warnings",
+      "suspicious_total": 0
+    },
+    "340xx/normal/linux612-nvidia-340xx": {
+      "clean_total": 6,
+      "clean_uniq": 3,
+      "err_count": 0,
+      "noise_total": 1,
+      "status": "warnings",
+      "suspicious_total": 0
+    },
+    "340xx/normal/linux618-nvidia-340xx": {
+      "clean_total": 7,
+      "clean_uniq": 4,
+      "err_count": 0,
+      "noise_total": 0,
+      "status": "warnings",
+      "suspicious_total": 0
+    },
+    "340xx/normal/linux66-nvidia-340xx": {
+      "clean_total": 6,
+      "clean_uniq": 3,
+      "err_count": 0,
+      "noise_total": 1,
+      "status": "warnings",
+      "suspicious_total": 0
+    },
+    "340xx/normal/linux73-nvidia-340xx": {
+      "clean_total": 9,
+      "clean_uniq": 6,
+      "err_count": 0,
+      "noise_total": 0,
+      "status": "warnings",
+      "suspicious_total": 0
+    },
+    "340xx/normal/linux74-nvidia-340xx": {
+      "clean_total": 9,
+      "clean_uniq": 6,
+      "err_count": 0,
+      "noise_total": 0,
+      "status": "warnings",
+      "suspicious_total": 0
+    },
+    "340xx/rt/linux61-rt-nvidia-340xx": {
+      "clean_total": 2,
+      "clean_uniq": 2,
+      "err_count": 0,
+      "noise_total": 1,
+      "status": "warnings",
+      "suspicious_total": 0
+    },
+    "340xx/rt/linux612-rt-nvidia-340xx": {
+      "clean_total": 6,
+      "clean_uniq": 3,
+      "err_count": 0,
+      "noise_total": 1,
+      "status": "warnings",
+      "suspicious_total": 0
+    },
+    "340xx/rt/linux66-rt-nvidia-340xx": {
+      "clean_total": 6,
+      "clean_uniq": 3,
+      "err_count": 0,
+      "noise_total": 1,
+      "status": "warnings",
+      "suspicious_total": 0
+    }
+  },
+  "clean_signatures": {
+    "warning: '__fbdev_warning' defined but not used [-Wunused-variable]": {
+      "builds": [
+        "340xx/normal/linux-next-nvidia-340xx",
+        "340xx/normal/linux73-nvidia-340xx",
+        "340xx/normal/linux74-nvidia-340xx"
+      ],
+      "hits": 3
+    },
+    "warning: 'nv_fbdev_failure_detected' defined but not used [-Wunused-variable]": {
+      "builds": [
+        "340xx/normal/linux-next-nvidia-340xx",
+        "340xx/normal/linux73-nvidia-340xx",
+        "340xx/normal/linux74-nvidia-340xx"
+      ],
+      "hits": 3
+    },
+    "warning: Please avoid flushing system-wide workqueues. [-Wattribute-warning]": {
+      "builds": [
+        "340xx/normal/linux612-nvidia-340xx",
+        "340xx/normal/linux618-nvidia-340xx",
+        "340xx/normal/linux66-nvidia-340xx",
+        "340xx/normal/linux73-nvidia-340xx",
+        "340xx/normal/linux74-nvidia-340xx",
+        "340xx/rt/linux612-rt-nvidia-340xx",
+        "340xx/rt/linux66-rt-nvidia-340xx"
+      ],
+      "hits": 28
+    },
+    "warning: ignoring old recipe for target '<path>'": {
+      "builds": [
+        "340xx/normal/linux61-nvidia-340xx",
+        "340xx/normal/linux612-nvidia-340xx",
+        "340xx/normal/linux66-nvidia-340xx",
+        "340xx/rt/linux61-rt-nvidia-340xx",
+        "340xx/rt/linux612-rt-nvidia-340xx",
+        "340xx/rt/linux66-rt-nvidia-340xx"
+      ],
+      "hits": 6
+    },
+    "warning: ignoring old recipe for target 'Module.symvers'": {
+      "builds": [
+        "340xx/normal/linux618-nvidia-340xx",
+        "340xx/normal/linux73-nvidia-340xx",
+        "340xx/normal/linux74-nvidia-340xx"
+      ],
+      "hits": 3
+    },
+    "warning: ignoring return value of 'refcount_sub_and_test' declared with attribute 'warn_unused_result' [-Wunused-result]": {
+      "builds": [
+        "340xx/normal/linux618-nvidia-340xx",
+        "340xx/normal/linux73-nvidia-340xx",
+        "340xx/normal/linux74-nvidia-340xx"
+      ],
+      "hits": 3
+    },
+    "warning: overriding recipe for target '<path>'": {
+      "builds": [
+        "340xx/normal/linux61-nvidia-340xx",
+        "340xx/normal/linux612-nvidia-340xx",
+        "340xx/normal/linux66-nvidia-340xx",
+        "340xx/rt/linux61-rt-nvidia-340xx",
+        "340xx/rt/linux612-rt-nvidia-340xx",
+        "340xx/rt/linux66-rt-nvidia-340xx"
+      ],
+      "hits": 6
+    },
+    "warning: overriding recipe for target 'Module.symvers'": {
+      "builds": [
+        "340xx/normal/linux618-nvidia-340xx",
+        "340xx/normal/linux73-nvidia-340xx",
+        "340xx/normal/linux74-nvidia-340xx"
+      ],
+      "hits": 3
+    }
+  },
+  "timestamp": "2026-11-27T01-11-30"
+}

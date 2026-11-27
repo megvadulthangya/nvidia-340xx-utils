@@ -1,0 +1,4 @@
+       4  warning: Please avoid flushing system-wide workqueues. [-Wattribute-warning]
+       1  warning: ignoring return value of 'refcount_sub_and_test' declared with attribute 'warn_unused_result' [-Wunused-result]
+       1  warning: overriding recipe for target 'Module.symvers'
+       1  warning: ignoring old recipe for target 'Module.symvers'

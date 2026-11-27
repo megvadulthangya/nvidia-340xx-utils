@@ -1,0 +1,12 @@
+216: nv.c:935:9: error: implicit declaration of function ‘rdmsr’; did you mean ‘rdmsrq’? [-Wimplicit-function-declaration]
+227: make[4]: *** [/usr/lib/modules/7.4.0-rc4-next-20261124-1-MANJARO/build/scripts/Makefile.build:321: nv.o] Error 1
+229: make[3]: *** [/usr/lib/modules/7.4.0-rc4-next-20261124-1-MANJARO/build/Makefile:2252: .] Error 2
+230: make[2]: *** [/usr/lib/modules/7.4.0-rc4-next-20261124-1-MANJARO/build/Makefile:248: __sub-make] Error 2
+232: make[1]: *** [Makefile:248: __sub-make] Error 2
+234: make: *** [Makefile:225: nvidia.ko] Error 2
+255: make[5]: *** No rule to make target 'Makefile'.  Stop.
+256: make[4]: *** [/usr/lib/modules/7.4.0-rc4-next-20261124-1-MANJARO/build/Makefile:2252: .] Error 2
+257: make[3]: *** [/usr/lib/modules/7.4.0-rc4-next-20261124-1-MANJARO/build/Makefile:248: __sub-make] Error 2
+259: make[2]: *** [Makefile:248: __sub-make] Error 2
+261: make[1]: *** [Makefile:225: nvidia.ko] Error 2
+263: make: *** [Makefile:226: ../Module.symvers] Error 2

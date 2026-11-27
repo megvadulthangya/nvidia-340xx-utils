@@ -1,0 +1,41 @@
+build:           linux-next-nvidia-340xx
+driver:          340xx
+variant:         normal
+kernel:          unknown
+nvidia version:  unknown
+status:          failed
+log path:        /build/sources/nvidia-340xx/normal-kernels/linux-next-nvidia-340xx/src/nvidia/340.108/build/make.log
+log size:        29741 bytes
+log lines:       268
+build dir:       /build/sources/nvidia-340xx/normal-kernels/linux-next-nvidia-340xx
+raw log:         make.log.zst
+
+errors:          12
+warnings clean:  2  (unique: 2)
+warnings noise:  0  (unique: 0)
+suspicious:      3  (unique: 2)
+modules on disk: 0  [—]
+log MODPOST:     no
+log cached:      no
+
+=== Top clean warning groups ===
+       1  warning: '__fbdev_warning' defined but not used [-Wunused-variable]
+       1  warning: 'nv_fbdev_failure_detected' defined but not used [-Wunused-variable]
+
+=== Suspicious groups ===
+       2  mkdir: cannot create directory '.tmp_NNN': Permission denied
+       1  /usr/lib/modules/7.4.0-rc4-next-20261124-1-MANJARO/build/scripts/Makefile.build:38: Makefile: No such file or directory
+
+=== Error excerpt (first 20) ===
+216: nv.c:935:9: error: implicit declaration of function ‘rdmsr’; did you mean ‘rdmsrq’? [-Wimplicit-function-declaration]
+227: make[4]: *** [/usr/lib/modules/7.4.0-rc4-next-20261124-1-MANJARO/build/scripts/Makefile.build:321: nv.o] Error 1
+229: make[3]: *** [/usr/lib/modules/7.4.0-rc4-next-20261124-1-MANJARO/build/Makefile:2252: .] Error 2
+230: make[2]: *** [/usr/lib/modules/7.4.0-rc4-next-20261124-1-MANJARO/build/Makefile:248: __sub-make] Error 2
+232: make[1]: *** [Makefile:248: __sub-make] Error 2
+234: make: *** [Makefile:225: nvidia.ko] Error 2
+255: make[5]: *** No rule to make target 'Makefile'.  Stop.
+256: make[4]: *** [/usr/lib/modules/7.4.0-rc4-next-20261124-1-MANJARO/build/Makefile:2252: .] Error 2
+257: make[3]: *** [/usr/lib/modules/7.4.0-rc4-next-20261124-1-MANJARO/build/Makefile:248: __sub-make] Error 2
+259: make[2]: *** [Makefile:248: __sub-make] Error 2
+261: make[1]: *** [Makefile:225: nvidia.ko] Error 2
+263: make: *** [Makefile:226: ../Module.symvers] Error 2
