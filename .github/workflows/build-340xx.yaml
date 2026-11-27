@@ -26,4 +26,4 @@ jobs:
       raw-logs: all
       raw-logs-format: auto
     secrets:
-      github_token: ${{ secrets.GITHUB_TOKEN }}
+      repo_token: ${{ secrets.GITHUB_TOKEN }}
